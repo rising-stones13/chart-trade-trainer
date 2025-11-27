@@ -8,7 +8,7 @@ import type { AppState, CandleData, MAConfig, Position, Trade } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
-import { LineChart } from 'lucide-react';
+import { LineChart, Loader2 } from 'lucide-react';
 
 type Action =
   | { type: 'SET_CHART_DATA'; payload: { data: CandleData[]; title: string } }
