@@ -28,7 +28,7 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
       <CardHeader className="p-4">
         <CardTitle className="text-lg">模擬トレード</CardTitle>
       </CardHeader>
-      <CardContent className="p-4 flex-grow flex flex-col gap-4">
+      <CardContent className="p-4 flex-grow flex flex-col gap-2">
         <div className="grid grid-cols-2 gap-4">
           <Button onClick={() => onTrade('long')} disabled={!isReplay} className="bg-blue-600 hover:bg-blue-700 text-white">
             <ArrowUp className="mr-2 h-4 w-4" /> 買い
