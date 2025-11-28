@@ -210,39 +210,41 @@ export default function ChartTradeTrainer() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen font-body bg-background text-foreground">
+      <div className="flex flex-col lg:flex-row min-h-screen font-body bg-background text-foreground">
         <Sidebar>
-          <SidebarContent className="p-0">
-            <ControlPanel
-              fileLoaded={state.fileLoaded}
-              isReplay={state.isReplay}
-              replayDate={state.replayDate}
-              showWeeklyChart={state.showWeeklyChart}
-              ticker={ticker}
-              onTickerChange={setTicker}
-              onFetchData={() => handleFetchData(ticker)}
-              isLoading={isLoading}
-              onStartReplay={handleStartReplay}
-              onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
-              onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
-              onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-            >
-              <Sheet open={isMaSettingsOpen} onOpenChange={setIsMaSettingsOpen}>
+          <Sheet open={isMaSettingsOpen} onOpenChange={setIsMaSettingsOpen}>
+            <SidebarContent className="p-0">
+              <ControlPanel
+                fileLoaded={state.fileLoaded}
+                isReplay={state.isReplay}
+                replayDate={state.replayDate}
+                showWeeklyChart={state.showWeeklyChart}
+                ticker={ticker}
+                onTickerChange={setTicker}
+                onFetchData={() => handleFetchData(ticker)}
+                isLoading={isLoading}
+                onStartReplay={handleStartReplay}
+                onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
+                onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
+                onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+              >
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon">
                     <Sigma className="h-4 w-4" />
                   </Button>
                 </SheetTrigger>
-                 <MaSettingsPanel
-                    maConfigs={state.maConfigs}
-                    onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
-                  />
-              </Sheet>
-            </ControlPanel>
-          </SidebarContent>
+              </ControlPanel>
+            </SidebarContent>
+            <MaSettingsPanel
+              maConfigs={state.maConfigs}
+              onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
+              open={isMaSettingsOpen}
+              onOpenChange={setIsMaSettingsOpen}
+            />
+          </Sheet>
         </Sidebar>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1">
           <header className="p-2 border-b border-border flex items-center gap-2 lg:hidden">
               <SidebarTrigger><Menu /></SidebarTrigger>
               <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
