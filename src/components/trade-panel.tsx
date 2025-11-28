@@ -19,8 +19,6 @@ interface TradePanelProps {
   positions: Position[];
   realizedPL: number;
   unrealizedPL: number;
-  avgBuyPrice: number;
-  avgSellPrice: number;
   onTrade: (type: 'long' | 'short') => void;
   onClosePosition: (positionType: 'long' | 'short') => void;
   onStartReplay: () => void;
@@ -36,8 +34,6 @@ export function TradePanel({
   positions, 
   realizedPL, 
   unrealizedPL, 
-  avgBuyPrice,
-  avgSellPrice,
   onTrade, 
   onClosePosition,
   onStartReplay,
@@ -102,14 +98,6 @@ export function TradePanel({
             <div className="rounded-md bg-muted p-1">
                 <div className="text-xs text-muted-foreground">確定損益</div>
                 <div className={`font-bold ${realizedPL >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(realizedPL)}</div>
-            </div>
-             <div className="rounded-md bg-muted p-1">
-                <div className="text-xs text-muted-foreground">平均購入単価</div>
-                <div className="font-bold text-blue-400">{avgBuyPrice > 0 ? formatCurrency(avgBuyPrice) : '-'}</div>
-            </div>
-            <div className="rounded-md bg-muted p-1">
-                <div className="text-xs text-muted-foreground">平均売却単価</div>
-                <div className="font-bold text-red-400">{avgSellPrice > 0 ? formatCurrency(avgSellPrice) : '-'}</div>
             </div>
         </div>
 

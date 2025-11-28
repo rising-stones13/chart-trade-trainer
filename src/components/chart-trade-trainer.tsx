@@ -313,10 +313,6 @@ export default function ChartTradeTrainer() {
       }))
   ), [state.positions]);
 
-  const avgBuyPrice = useMemo(() => state.positions.find(p => p.type === 'long')?.avgPrice ?? 0, [state.positions]);
-  const avgSellPrice = useMemo(() => state.positions.find(p => p.type === 'short')?.avgPrice ?? 0, [state.positions]);
-
-
   return (
     <div className="flex flex-col h-screen font-body bg-background text-foreground">
       <header className="p-2 border-b border-border flex items-center gap-2 flex-shrink-0">
@@ -410,8 +406,6 @@ export default function ChartTradeTrainer() {
             positions={state.positions}
             realizedPL={state.realizedPL}
             unrealizedPL={state.unrealizedPL}
-            avgBuyPrice={avgBuyPrice}
-            avgSellPrice={avgSellPrice}
             onTrade={(type) => dispatch({ type: 'TRADE', payload: type })}
             onClosePosition={handlePartialClose}
             onStartReplay={handleStartReplay}
