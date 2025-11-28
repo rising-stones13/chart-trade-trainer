@@ -301,11 +301,13 @@ export default function ChartTradeTrainer() {
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon"><Menu /></Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[320px]">
-                <SheetHeader className="p-4 border-b">
+            <SheetContent side="left" className="p-0 w-[320px] flex flex-col">
+                <SheetHeader className="p-2 border-b flex flex-row items-center gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => setIsControlPanelOpen(false)}><Menu /></Button>
+                    <div className="border-l border-border h-6 mx-2"></div>
                     <SheetTitle>コントロールパネル</SheetTitle>
                 </SheetHeader>
-                <div className="p-4">
+                <div className="p-4 flex-grow overflow-y-auto">
                   <ControlPanel
                     fileLoaded={state.fileLoaded}
                     upColor={state.upColor}
