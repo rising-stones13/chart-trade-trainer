@@ -22,7 +22,7 @@ interface TradePanelProps {
   avgBuyPrice: number;
   avgSellPrice: number;
   onTrade: (type: 'long' | 'short') => void;
-  onClosePosition: (positionId: string) => void;
+  onClosePosition: (positionType: 'long' | 'short') => void;
   onStartReplay: () => void;
   onNextDay: () => void;
   onDateChange: (date?: Date) => void;
@@ -125,7 +125,7 @@ export function TradePanel({
                     <TableHeader>
                         <TableRow>
                             <TableHead className="h-8 px-2">種別</TableHead>
-                            <TableHead className="h-8 px-2">約定単価</TableHead>
+                            <TableHead className="h-8 px-2">平均単価</TableHead>
                             <TableHead className="h-8 px-2">数量</TableHead>
                             <TableHead className="h-8 px-2"></TableHead>
                         </TableRow>
@@ -137,14 +137,14 @@ export function TradePanel({
                             </TableRow>
                         ) : (
                             positions.map(pos => (
-                                <TableRow key={pos.id}>
+                                <TableRow key={pos.type}>
                                     <TableCell className={`p-2 ${pos.type === 'long' ? 'text-blue-400' : 'text-red-400'}`}>
                                         {pos.type === 'long' ? '買い' : '売り'}
                                     </TableCell>
-                                    <TableCell className="p-2">{formatCurrency(pos.entryPrice)}</TableCell>
-                                    <TableCell className="p-2">{pos.size}</TableCell>
+                                    <TableCell className="p-2">{formatCurrency(pos.avgPrice)}</TableCell>
+                                    <TableCell className="p-2">{pos.totalSize}</TableCell>
                                     <TableCell className="p-2">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onClosePosition(pos.id)} disabled={!isReplay}>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onClosePosition(pos.type)} disabled={!isReplay}>
                                             <X className="h-4 w-4"/>
                                         </Button>
                                     </TableCell>
@@ -159,3 +159,5 @@ export function TradePanel({
     </Card>
   );
 }
+
+    

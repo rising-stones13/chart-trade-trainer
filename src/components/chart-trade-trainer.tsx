@@ -4,7 +4,7 @@ import React, { useReducer, useCallback, useMemo, useState, useEffect } from 're
 import { getStockData } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { generateWeeklyData } from '@/lib/data-helpers';
-import type { AppState, CandleData, MAConfig, Position, Trade } from '@/types';
+import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
@@ -19,7 +19,7 @@ type Action =
   | { type: 'START_REPLAY'; payload: Date }
   | { type: 'NEXT_DAY' }
   | { type: 'TRADE'; payload: 'long' | 'short' }
-  | { type: 'CLOSE_POSITION'; payload: string }
+  | { type: 'CLOSE_POSITION'; payload: 'long' | 'short' }
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
@@ -40,14 +40,6 @@ type AppStateWithLocal = AppState & {
   realizedPL: number,
 };
 
-const calculateAveragePrice = (positions: Position[], type: 'long' | 'short'): number => {
-  const targetPositions = positions.filter(p => p.type === type);
-  if (targetPositions.length === 0) return 0;
-  const totalCost = targetPositions.reduce((sum, p) => sum + p.entryPrice * p.size, 0);
-  const totalSize = targetPositions.reduce((sum, p) => sum + p.size, 0);
-  return totalCost / totalSize;
-};
-
 const initialState: AppStateWithLocal = {
   chartData: [],
   weeklyData: [],
@@ -61,8 +53,6 @@ const initialState: AppStateWithLocal = {
   tradeHistory: [],
   realizedPL: 0,
   unrealizedPL: 0,
-  avgBuyPrice: 0,
-  avgSellPrice: 0,
   maConfigs: initialMAConfigs,
   showWeeklyChart: false,
   upColor: '#ef5350',
@@ -90,7 +80,7 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       const startIndex = state.chartData.findIndex(d => new Date(d.time as string) >= date);
       if (startIndex === -1) return state; // Or show error
       const currentReplayDate = state.chartData[startIndex].time as string;
-      return { ...state, replayIndex: startIndex, isReplay: true, replayDate: date, currentReplayDate, positions: [], tradeHistory: [], realizedPL: 0, unrealizedPL: 0, avgBuyPrice: 0, avgSellPrice: 0, };
+      return { ...state, replayIndex: startIndex, isReplay: true, replayDate: date, currentReplayDate, positions: [], tradeHistory: [], realizedPL: 0, unrealizedPL: 0 };
     }
     case 'NEXT_DAY': {
       if (state.replayIndex === null || state.replayIndex >= state.chartData.length - 1) {
@@ -99,7 +89,7 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       const newIndex = state.replayIndex + 1;
       const currentPrice = state.chartData[newIndex].close;
       const unrealizedPL = state.positions.reduce((acc, pos) => {
-        const pl = pos.type === 'long' ? (currentPrice - pos.entryPrice) * pos.size : (pos.entryPrice - currentPrice) * pos.size;
+        const pl = pos.type === 'long' ? (currentPrice - pos.avgPrice) * pos.totalSize : (pos.avgPrice - currentPrice) * pos.totalSize;
         return acc + pl;
       }, 0);
       const currentReplayDate = state.chartData[newIndex].time as string;
@@ -109,58 +99,82 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
         if (state.replayIndex === null) return state;
         const type = action.payload;
         const currentData = state.chartData[state.replayIndex];
-
-        const newPosition: Position = {
+        const newEntry: PositionEntry = {
             id: crypto.randomUUID(),
-            type,
-            entryPrice: currentData.close,
+            price: currentData.close,
             size: 100, // Fixed size for now
-            entryDate: currentData.time,
-            entryIndex: state.replayIndex,
+            date: currentData.time,
         };
-        const newPositions = [...state.positions, newPosition];
-        const avgBuyPrice = calculateAveragePrice(newPositions, 'long');
-        const avgSellPrice = calculateAveragePrice(newPositions, 'short');
+
+        const existingPosition = state.positions.find(p => p.type === type);
+        let newPositions: Position[];
+
+        if (existingPosition) {
+            const updatedEntries = [...existingPosition.entries, newEntry];
+            const totalSize = updatedEntries.reduce((sum, e) => sum + e.size, 0);
+            const totalCost = updatedEntries.reduce((sum, e) => sum + e.price * e.size, 0);
+            const avgPrice = totalCost / totalSize;
+            
+            const updatedPosition: Position = {
+                ...existingPosition,
+                entries: updatedEntries,
+                totalSize,
+                avgPrice,
+            };
+
+            newPositions = state.positions.map(p => p.type === type ? updatedPosition : p);
+        } else {
+            const newPosition: Position = {
+                type: type,
+                entries: [newEntry],
+                totalSize: newEntry.size,
+                avgPrice: newEntry.price,
+            };
+            newPositions = [...state.positions, newPosition];
+        }
         
-        return { ...state, positions: newPositions, avgBuyPrice, avgSellPrice };
+        return { ...state, positions: newPositions };
     }
     case 'CLOSE_POSITION': {
       if (state.replayIndex === null) return state;
-      const positionId = action.payload;
-      const positionToClose = state.positions.find(p => p.id === positionId);
+      const positionType = action.payload;
+      const positionToClose = state.positions.find(p => p.type === positionType);
       if (!positionToClose) return state;
 
       const currentPrice = state.chartData[state.replayIndex].close;
+      const exitDate = state.chartData[state.replayIndex].time;
+      
       const profit = positionToClose.type === 'long'
-        ? (currentPrice - positionToClose.entryPrice) * positionToClose.size
-        : (positionToClose.entryPrice - currentPrice) * positionToClose.size;
+        ? (currentPrice - positionToClose.avgPrice) * positionToClose.totalSize
+        : (positionToClose.avgPrice - currentPrice) * positionToClose.totalSize;
 
-      const newTrade: Trade = {
-        ...positionToClose,
+      const newTrades: Trade[] = positionToClose.entries.map(entry => ({
+        id: entry.id,
+        type: positionToClose.type,
+        entryPrice: entry.price,
+        size: entry.size,
+        entryDate: entry.date,
         exitPrice: currentPrice,
-        exitDate: state.chartData[state.replayIndex].time,
-        profit,
-      };
+        exitDate: exitDate,
+        profit: positionToClose.type === 'long'
+          ? (currentPrice - entry.price) * entry.size
+          : (entry.price - currentPrice) * entry.size
+      }));
 
       const newRealizedPL = state.realizedPL + profit;
-      const newPositions = state.positions.filter(p => p.id !== positionId);
+      const newPositions = state.positions.filter(p => p.type !== positionType);
 
       const newUnrealizedPL = newPositions.reduce((acc, pos) => {
-        const pl = pos.type === 'long' ? (currentPrice - pos.entryPrice) * pos.size : (pos.entryPrice - currentPrice) * pos.size;
+        const pl = pos.type === 'long' ? (currentPrice - pos.avgPrice) * pos.totalSize : (pos.avgPrice - currentPrice) * pos.totalSize;
         return acc + pl;
       }, 0);
-
-      const avgBuyPrice = calculateAveragePrice(newPositions, 'long');
-      const avgSellPrice = calculateAveragePrice(newPositions, 'short');
 
       return {
         ...state,
         positions: newPositions,
-        tradeHistory: [...state.tradeHistory, newTrade],
+        tradeHistory: [...state.tradeHistory, ...newTrades],
         realizedPL: newRealizedPL,
         unrealizedPL: newUnrealizedPL,
-        avgBuyPrice,
-        avgSellPrice,
       };
     }
     case 'TOGGLE_MA':
@@ -185,8 +199,6 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
         realizedPL: 0,
         unrealizedPL: 0,
         currentReplayDate: null,
-        avgBuyPrice: 0,
-        avgSellPrice: 0,
       };
     case 'SET_CANDLE_COLOR':
       return {
@@ -250,6 +262,20 @@ export default function ChartTradeTrainer() {
         ? state.chartData.slice(0, state.replayIndex + 1)
         : state.chartData;
   }, [state.isReplay, state.replayIndex, state.chartData]);
+  
+  const allEntries = useMemo(() => state.positions.flatMap(p => 
+      p.entries.map(e => ({
+          id: e.id,
+          type: p.type,
+          entryPrice: e.price,
+          size: e.size,
+          entryDate: e.date,
+      }))
+  ), [state.positions]);
+
+  const avgBuyPrice = useMemo(() => state.positions.find(p => p.type === 'long')?.avgPrice ?? 0, [state.positions]);
+  const avgSellPrice = useMemo(() => state.positions.find(p => p.type === 'short')?.avgPrice ?? 0, [state.positions]);
+
 
   return (
     <div className="flex flex-col h-screen font-body bg-background text-foreground">
@@ -316,7 +342,7 @@ export default function ChartTradeTrainer() {
                 key={`${state.chartTitle}-${state.upColor}-${state.downColor}`}
                 chartData={displayedChartData}
                 weeklyData={state.weeklyData}
-                positions={state.positions}
+                positions={allEntries}
                 tradeHistory={state.tradeHistory}
                 maConfigs={state.maConfigs}
                 showWeeklyChart={state.showWeeklyChart}
@@ -344,10 +370,10 @@ export default function ChartTradeTrainer() {
             positions={state.positions}
             realizedPL={state.realizedPL}
             unrealizedPL={state.unrealizedPL}
-            avgBuyPrice={state.avgBuyPrice}
-            avgSellPrice={state.avgSellPrice}
+            avgBuyPrice={avgBuyPrice}
+            avgSellPrice={avgSellPrice}
             onTrade={(type) => dispatch({ type: 'TRADE', payload: type })}
-            onClosePosition={(id) => dispatch({ type: 'CLOSE_POSITION', payload: id })}
+            onClosePosition={(type) => dispatch({ type: 'CLOSE_POSITION', payload: type })}
             onStartReplay={handleStartReplay}
             onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
             onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
@@ -357,3 +383,5 @@ export default function ChartTradeTrainer() {
     </div>
   );
 }
+
+    

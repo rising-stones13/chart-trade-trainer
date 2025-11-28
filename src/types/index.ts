@@ -14,16 +14,29 @@ export type LineData = {
   value: number | undefined | null | number;
 };
 
+// Represents a single entry within a consolidated position
+export interface PositionEntry {
+  id: string;
+  price: number;
+  size: number;
+  date: Time;
+}
+
+// Represents a consolidated position (all longs or all shorts)
 export interface Position {
+  type: 'long' | 'short';
+  entries: PositionEntry[];
+  totalSize: number;
+  avgPrice: number;
+}
+
+// Represents a closed trade from a single entry
+export interface Trade {
   id: string;
   type: 'long' | 'short';
   entryPrice: number;
   size: number;
   entryDate: Time;
-  entryIndex: number;
-}
-
-export interface Trade extends Position {
   exitPrice: number;
   exitDate: Time;
   profit: number;
@@ -45,10 +58,10 @@ export type AppState = {
   currentReplayDate: string | null;
   positions: Position[];
   tradeHistory: Trade[];
-  avgBuyPrice: number;
-  avgSellPrice: number;
   maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
   upColor: string;
   downColor: string;
 };
+
+    
