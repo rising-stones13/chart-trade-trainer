@@ -96,16 +96,6 @@ export function StockChart({
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'>>(null);
   const maSeriesRefs = useRef<Record<string, ISeriesApi<'Line'>>>({});
   
-  // Calculate MA data inside the component whenever the displayed data changes
-  const maData = useMemo(() => {
-    return Object.fromEntries(
-        Object.values(maConfigs).map(config => [
-            config.period.toString(),
-            calculateMA(chartData, config.period)
-        ])
-    );
-  }, [chartData, maConfigs]);
-
   useEffect(() => {
     if (!chartContainerRef.current) return;
     
@@ -163,24 +153,19 @@ export function StockChart({
         const period = config.period.toString();
         const series = maSeriesRefs.current[period];
         if (series) {
-            series.setData(maData[period] || []);
+            const maData = calculateMA(chartData, config.period);
+            series.setData(maData);
             series.applyOptions({ visible: config.visible });
         }
     });
 
-    if (replayIndex === null) {
-      const dataLength = chartData.length;
-      if (dataLength > 0) {
-          const logicalRange: LogicalRange = {
-              from: Math.max(0, dataLength - 120),
-              to: dataLength,
-          };
-          chartRef.current.timeScale().setVisibleLogicalRange(logicalRange);
-      }
-    } else {
-       chartRef.current.timeScale().scrollToPosition(chartData.length, false);
+    // Scroll to the latest bar
+    const dataLength = chartData.length;
+    if (dataLength > 0) {
+        chartRef.current.timeScale().scrollToPosition(dataLength - 1, false);
     }
-  }, [chartData, maData, maConfigs, replayIndex]);
+    
+  }, [chartData, maConfigs, replayIndex]);
   
   useEffect(() => {
     if (!candleSeriesRef.current) return;
