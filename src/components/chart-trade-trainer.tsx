@@ -261,8 +261,12 @@ export default function ChartTradeTrainer() {
                 </div>
             </SheetContent>
           </Sheet>
+          
+          <div className="border-l border-border h-6 mx-2"></div>
 
-          <div className="flex items-center gap-2">
+          <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
+          
+          <div className="flex items-center gap-2 ml-auto">
             <Input
               id="ticker-input"
               type="text"
@@ -277,10 +281,6 @@ export default function ChartTradeTrainer() {
               {isLoading ? '' : '取得'}
             </Button>
           </div>
-          
-          <div className="border-l border-border h-6 mx-2"></div>
-
-          <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
       </header>
 
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
