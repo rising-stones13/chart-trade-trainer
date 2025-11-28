@@ -118,7 +118,7 @@ export function StockChart({
         const period = config.period.toString();
         maSeriesRefs.current[period] = chart.addLineSeries({
             color: config.color,
-            lineWidth: 2,
+            lineWidth: 3,
             lastValueVisible: false,
             priceLineVisible: false,
         });
@@ -159,27 +159,10 @@ export function StockChart({
 
     const dataLength = chartData.length;
     if (dataLength > 1) {
-        const lastDataPoint = chartData[dataLength - 1];
-        const secondLastDataPoint = chartData[dataLength - 2];
-        
-        // Ensure time is a UTCTimestamp
-        const toUTCTimestamp = (time: Time): UTCTimestamp => {
-            if (typeof time === 'string') {
-                return Math.floor(new Date(time).getTime() / 1000) as UTCTimestamp;
-            }
-            return time as UTCTimestamp;
-        };
-
-        const lastTime = toUTCTimestamp(lastDataPoint.time);
-        const secondLastTime = toUTCTimestamp(secondLastDataPoint.time);
-
-        const timeDiff = lastTime - secondLastTime;
-        
-        const from = dataLength > 30 ? dataLength - 30 : 0;
+        const from = dataLength > 120 ? dataLength - 120 : 0;
         const to = dataLength + 5;
-
-        // Use logical range for setting visible range
-        chartRef.current.timeScale().setVisibleLogicalRange({ from, to });
+        
+        chartRef.current.timeScale().setVisibleRange({ from, to });
     }
     
   }, [chartData, maConfigs]);
