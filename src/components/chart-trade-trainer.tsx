@@ -29,8 +29,7 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_REPLAY_DATE'; payload: Date | null }
-  | { type: 'SET_LOG_SCALE'; payload: boolean };
+  | { type: 'SET_REPLAY_DATE'; payload: Date | null };
 
 const initialMAConfigs: Record<string, MAConfig> = {
   '5': { period: 5, color: '#FF5252', visible: true },
@@ -250,7 +249,7 @@ export default function ChartTradeTrainer() {
           </header>
 
           <div className="flex-1 flex flex-col lg:grid lg:grid-cols-[1fr_300px] overflow-auto">
-            <main className="flex flex-col bg-background h-full overflow-auto">
+            <main className="flex flex-col bg-background overflow-auto flex-grow">
               <header className="p-4 border-b border-border hidden lg:block">
                 <h1 className="text-xl font-bold truncate">{state.chartTitle}</h1>
               </header>
@@ -282,7 +281,7 @@ export default function ChartTradeTrainer() {
               </div>
             </main>
 
-            <aside className="lg:border-l lg:border-border flex-col flex h-full">
+            <aside className="lg:border-l lg:border-border flex-col flex shrink-0">
               <TradePanel
                 isReplay={state.isReplay}
                 positions={state.positions}
