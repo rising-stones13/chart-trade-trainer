@@ -22,8 +22,6 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
   };
   
   const totalPL = realizedPL + unrealizedPL;
-  const hasLong = positions.some(p => p.type === 'long');
-  const hasShort = positions.some(p => p.type === 'short');
 
   return (
     <Card className="h-full flex flex-col">
@@ -32,10 +30,10 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
       </CardHeader>
       <CardContent className="p-4 flex-grow flex flex-col gap-4">
         <div className="grid grid-cols-2 gap-4">
-          <Button onClick={() => onTrade('long')} disabled={!isReplay || hasShort} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button onClick={() => onTrade('long')} disabled={!isReplay} className="bg-blue-600 hover:bg-blue-700 text-white">
             <ArrowUp className="mr-2 h-4 w-4" /> 買い
           </Button>
-          <Button onClick={() => onTrade('short')} disabled={!isReplay || hasLong} className="bg-red-600 hover:bg-red-700 text-white">
+          <Button onClick={() => onTrade('short')} disabled={!isReplay} className="bg-red-600 hover:bg-red-700 text-white">
             <ArrowDown className="mr-2 h-4 w-4" /> 空売り
           </Button>
         </div>
