@@ -24,10 +24,10 @@ type Action =
 
 const initialMAConfigs: Record<string, MAConfig> = {
   '5': { period: 5, color: 'red', visible: true },
-  '10': { period: 10, color: 'green', visible: false },
+  '10': { period: 10, color: 'green', visible: true },
   '20': { period: 20, color: 'blue', visible: true },
   '50': { period: 50, color: 'purple', visible: true },
-  '100': { period: 100, color: 'orange', visible: false },
+  '100': { period: 100, color: 'orange', visible: true },
 };
 
 type AppStateWithLocal = AppState & {
