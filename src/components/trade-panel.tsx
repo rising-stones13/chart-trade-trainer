@@ -28,8 +28,8 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
       <CardHeader className="p-4">
         <CardTitle className="text-lg">模擬トレード</CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4 flex flex-col gap-1">
-        <div className="grid grid-cols-2 gap-2">
+      <CardContent className="px-4 pb-4 flex flex-col">
+        <div className="grid grid-cols-2 gap-2 mb-1">
           <Button onClick={() => onTrade('long')} disabled={!isReplay} className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
             <ArrowUp className="mr-2 h-4 w-4" /> 買い
           </Button>
@@ -38,7 +38,7 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 gap-4 text-center">
+        <div className="grid grid-cols-2 gap-2 text-center mb-1">
             <div className="p-1 rounded-md bg-muted">
                 <div className="text-xs text-muted-foreground">評価損益</div>
                 <div className={`text-lg font-bold ${unrealizedPL >= 0 ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(unrealizedPL)}</div>
@@ -49,13 +49,13 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
             </div>
         </div>
 
-        <div className="p-2 rounded-lg text-center bg-card-foreground text-background">
+        <div className="rounded-lg text-center bg-card-foreground text-background">
             <div className="text-sm">合計損益</div>
             <div className={`text-2xl font-bold ${totalPL >= 0 ? 'text-green-300' : 'text-red-300'}`}>{formatCurrency(totalPL)}</div>
         </div>
 
-        <div className="flex-grow flex flex-col">
-            <h3 className="text-md font-semibold mb-2">保有ポジション</h3>
+        <div className="flex-grow flex flex-col mt-2">
+            <h3 className="text-md font-semibold mb-1">保有ポジション</h3>
             <ScrollArea className="flex-grow">
                 <Table>
                     <TableHeader>
@@ -69,7 +69,7 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
                     <TableBody>
                         {positions.length === 0 ? (
                             <TableRow>
-                                <TableCell colSpan={4} className="text-center text-muted-foreground">ポジションがありません</TableCell>
+                                <TableCell colSpan={4} className="text-center text-muted-foreground py-2">ポジションがありません</TableCell>
                             </TableRow>
                         ) : (
                             positions.map(pos => (
