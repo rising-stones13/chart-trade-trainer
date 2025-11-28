@@ -49,7 +49,7 @@ export function TradePanel({
   return (
     <Card className="h-full flex flex-col border-l">
       <CardHeader className="px-4 py-2">
-        <CardTitle className="text-lg">模擬トレード</CardTitle>
+        <CardTitle className="text-lg">デモトレード</CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4 flex flex-col flex-grow">
         <div className={`space-y-2 mb-2 ${!fileLoaded ? 'opacity-50 pointer-events-none' : ''}`}>
