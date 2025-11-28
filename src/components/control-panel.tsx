@@ -8,34 +8,6 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Download, Settings2, Loader2, Sigma, Palette } from 'lucide-react';
 import { SidebarHeader, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from './ui/sidebar';
-import { cn } from '@/lib/utils';
-
-interface ColorPaletteProps {
-  selectedColor: string;
-  onColorSelect: (color: string) => void;
-  colors: string[];
-}
-
-function ColorPalette({ selectedColor, onColorSelect, colors }: ColorPaletteProps) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {colors.map(color => (
-        <button
-          key={color}
-          type="button"
-          className={cn(
-            'w-6 h-6 rounded-full border-2',
-            selectedColor.toLowerCase() === color.toLowerCase() ? 'border-ring' : 'border-transparent'
-          )}
-          style={{ backgroundColor: color }}
-          onClick={() => onColorSelect(color)}
-          aria-label={`Select color ${color}`}
-        />
-      ))}
-    </div>
-  );
-}
-
 
 interface ControlPanelProps {
   fileLoaded: boolean;
@@ -64,9 +36,6 @@ export function ControlPanel({
   downColor,
   onCandleColorChange,
 }: ControlPanelProps) {
-    const upColors = ['#ef5350', '#26a69a', '#ffffff', '#ff9800', '#9c27b0', '#795548'];
-    const downColors = ['#2196f3', '#ef5350', '#000000', '#607d8b', '#03a9f4', '#4caf50'];
-
   return (
     <div className="flex flex-col h-full">
       <SidebarHeader>
@@ -123,20 +92,24 @@ export function ControlPanel({
                 チャート配色
               </Label>
               <div className="space-y-2">
-                  <div>
-                      <Label htmlFor="up-color-picker" className="text-sm mb-2 block">陽線</Label>
-                      <ColorPalette 
-                        colors={upColors} 
-                        selectedColor={upColor} 
-                        onColorSelect={(color) => onCandleColorChange('upColor', color)}
+                  <div className="flex items-center justify-between">
+                      <Label htmlFor="up-color-picker">陽線</Label>
+                      <Input 
+                        id="up-color-picker"
+                        type="color" 
+                        value={upColor}
+                        onChange={(e) => onCandleColorChange('upColor', e.target.value)}
+                        className="w-16 h-8 p-1"
                       />
                   </div>
-                  <div>
-                      <Label htmlFor="down-color-picker" className="text-sm mb-2 block">陰線</Label>
-                      <ColorPalette 
-                        colors={downColors} 
-                        selectedColor={downColor} 
-                        onColorSelect={(color) => onCandleColorChange('downColor', color)}
+                  <div className="flex items-center justify-between">
+                      <Label htmlFor="down-color-picker">陰線</Label>
+                      <Input
+                        id="down-color-picker"
+                        type="color"
+                        value={downColor}
+                        onChange={(e) => onCandleColorChange('downColor', e.target.value)}
+                        className="w-16 h-8 p-1"
                       />
                   </div>
               </div>
