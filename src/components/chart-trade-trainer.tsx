@@ -23,7 +23,8 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_REPLAY_DATE'; payload: Date | null };
+  | { type: 'SET_REPLAY_DATE'; payload: Date | null }
+  | { type: 'SET_LOG_SCALE'; payload: boolean };
 
 const initialMAConfigs: Record<string, MAConfig> = {
   '5': { period: 5, color: '#FF5252', visible: true },
@@ -204,8 +205,8 @@ export default function ChartTradeTrainer() {
 
   return (
     <Sheet open={isMaSettingsOpen} onOpenChange={setIsMaSettingsOpen}>
-      <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] lg:grid-cols-[320px_1fr_300px] h-screen max-h-screen overflow-hidden font-body">
-        <aside className="border-r border-border flex flex-col h-screen">
+      <div className="flex flex-col lg:grid lg:grid-cols-[320px_1fr_300px] lg:h-screen font-body">
+        <aside className="lg:border-r lg:border-border lg:flex lg:flex-col lg:h-screen">
           <ControlPanel
             fileLoaded={state.fileLoaded}
             isReplay={state.isReplay}
@@ -228,7 +229,7 @@ export default function ChartTradeTrainer() {
           </ControlPanel>
         </aside>
 
-        <main className="hidden md:flex flex-col h-screen bg-background">
+        <main className="flex flex-col bg-background h-[60vh] lg:h-screen">
           <header className="p-4 border-b border-border">
             <h1 className="text-xl font-bold truncate">{state.chartTitle}</h1>
           </header>
@@ -260,7 +261,7 @@ export default function ChartTradeTrainer() {
           </div>
         </main>
 
-        <aside className="border-l border-border flex-col h-screen hidden lg:flex">
+        <aside className="lg:border-l lg:border-border flex-col lg:h-screen flex">
           <TradePanel
               isReplay={state.isReplay}
               positions={state.positions}
