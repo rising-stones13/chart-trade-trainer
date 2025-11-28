@@ -9,6 +9,7 @@ import { ArrowDown, ArrowUp, CalendarIcon, Forward } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
 import { Separator } from './ui/separator';
 import React from 'react';
 
@@ -63,11 +64,17 @@ export function TradePanel({
             <PopoverTrigger asChild>
               <Button variant="outline" className="w-full justify-start text-left font-normal h-9 px-3">
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {replayDate ? format(replayDate, 'PPP') : <span>開始日を選択</span>}
+                {replayDate ? format(replayDate, 'PPP', { locale: ja }) : <span>開始日を選択</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
-              <Calendar mode="single" selected={replayDate || undefined} onSelect={handleDateSelect} initialFocus />
+              <Calendar 
+                mode="single" 
+                selected={replayDate || undefined} 
+                onSelect={handleDateSelect} 
+                initialFocus
+                locale={ja}
+              />
             </PopoverContent>
           </Popover>
           <div className="grid grid-cols-1 gap-2">
