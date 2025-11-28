@@ -82,12 +82,8 @@ export function calculateMA(data: CandleData[], period: number): LineData[] {
     for (let j = 0; j < period; j++) {
       sum += data[i - j].close;
     }
-    // Ensure time is in 'YYYY-MM-DD' format, which lightweight-charts expects for strings.
-    const time = data[i].time;
-    const timeString = typeof time === 'string' ? time : new Date(time as number * 1000).toISOString().split('T')[0];
-    
     maData.push({
-      time: timeString,
+      time: data[i].time, // Ensure the time is exactly the same as the candlestick data point
       value: parseFloat((sum / period).toFixed(2)),
     });
   }
