@@ -155,9 +155,13 @@ export function StockChart({
         }
     });
 
-    // Don't auto-scroll when user is just advancing day-by-day
-    // Only set visible range on initial load or full replay reset.
-    if (replayIndex === null || (replayIndex !== null && chartData.length === replayIndex + 1)) {
+  }, [chartData, maConfigs, upColor, downColor]);
+  
+  useEffect(() => {
+    if (!chartRef.current) return;
+    // This effect handles the initial visible range and resets it when a replay finishes.
+    // It does NOT run during replay to preserve user's zoom/scroll.
+    if (replayIndex === null) {
         const dataLength = chartData.length;
         if (dataLength > 1) {
             const to = dataLength - 1;
@@ -165,9 +169,8 @@ export function StockChart({
             chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
         }
     }
-    
-  }, [chartData, maConfigs, upColor, downColor, replayIndex]);
-  
+  }, [replayIndex, chartData.length]); // Depends on replayIndex to reset and chartData length for initial load.
+
   useEffect(() => {
     if (!candleSeriesRef.current) return;
     
