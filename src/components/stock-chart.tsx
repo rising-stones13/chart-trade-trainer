@@ -15,7 +15,6 @@ interface StockChartProps {
   maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
   onCloseWeeklyChart: () => void;
-  isLogScale: boolean;
 }
 
 const chartColors = {
@@ -88,7 +87,6 @@ export function StockChart({
   maConfigs,
   showWeeklyChart,
   onCloseWeeklyChart,
-  isLogScale,
 }: StockChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -133,12 +131,6 @@ export function StockChart({
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.priceScale('right').applyOptions({ mode: isLogScale ? PriceScaleMode.Logarithmic : PriceScaleMode.Normal });
-    }
-  }, [isLogScale]);
 
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;

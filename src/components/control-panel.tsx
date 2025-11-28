@@ -19,7 +19,6 @@ interface ControlPanelProps {
   replayDate: Date | null;
   maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
-  isLogScale: boolean;
   ticker: string;
   onTickerChange: (ticker: string) => void;
   onFetchData: () => void;
@@ -29,7 +28,6 @@ interface ControlPanelProps {
   onDateChange: (date?: Date) => void;
   onMaToggle: (period: string) => void;
   onWeeklyChartToggle: () => void;
-  onScaleToggle: () => void;
 }
 
 export function ControlPanel({
@@ -38,7 +36,6 @@ export function ControlPanel({
   replayDate,
   maConfigs,
   showWeeklyChart,
-  isLogScale,
   ticker,
   onTickerChange,
   onFetchData,
@@ -48,7 +45,6 @@ export function ControlPanel({
   onDateChange,
   onMaToggle,
   onWeeklyChartToggle,
-  onScaleToggle,
 }: ControlPanelProps) {
 
   return (
@@ -114,13 +110,6 @@ export function ControlPanel({
                 週足チャート表示
               </Label>
               <Switch id="weekly-chart-toggle" checked={showWeeklyChart} onCheckedChange={onWeeklyChartToggle} />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="log-scale-toggle" className="flex items-center gap-2">
-                <Sigma className="h-4 w-4" />
-                対数スケール
-              </Label>
-              <Switch id="log-scale-toggle" checked={isLogScale} onCheckedChange={onScaleToggle} />
             </div>
             
             <div>

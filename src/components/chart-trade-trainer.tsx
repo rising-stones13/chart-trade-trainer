@@ -19,7 +19,6 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'TOGGLE_SCALE' }
   | { type: 'SET_REPLAY_DATE'; payload: Date | null };
 
 const initialMAConfigs: Record<string, MAConfig> = {
@@ -34,7 +33,6 @@ type AppStateWithLocal = AppState & {
   replayDate: Date | null,
   unrealizedPL: number,
   realizedPL: number,
-  isLogScale: boolean,
 };
 
 
@@ -52,7 +50,6 @@ const initialState: AppStateWithLocal = {
   unrealizedPL: 0,
   maConfigs: initialMAConfigs,
   showWeeklyChart: false,
-  isLogScale: false,
 };
 
 function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
@@ -62,7 +59,6 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       return {
         ...initialState, // Reset everything except UI settings
         maConfigs: state.maConfigs,
-        isLogScale: state.isLogScale,
         showWeeklyChart: state.showWeeklyChart,
         chartData: data,
         weeklyData: generateWeeklyData(data),
@@ -148,8 +144,6 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       };
     case 'TOGGLE_WEEKLY_CHART':
       return { ...state, showWeeklyChart: !state.showWeeklyChart };
-    case 'TOGGLE_SCALE':
-      return { ...state, isLogScale: !state.isLogScale };
     case 'SET_REPLAY_DATE':
       return { ...state, replayDate: action.payload };
     default:
@@ -212,7 +206,6 @@ export default function ChartTradeTrainer() {
           replayDate={state.replayDate}
           maConfigs={state.maConfigs}
           showWeeklyChart={state.showWeeklyChart}
-          isLogScale={state.isLogScale}
           ticker={ticker}
           onTickerChange={setTicker}
           onFetchData={() => handleFetchData(ticker)}
@@ -222,7 +215,6 @@ export default function ChartTradeTrainer() {
           onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
           onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
           onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-          onScaleToggle={() => dispatch({ type: 'TOGGLE_SCALE' })}
         />
       </aside>
 
@@ -247,7 +239,6 @@ export default function ChartTradeTrainer() {
                 maConfigs={state.maConfigs}
                 showWeeklyChart={state.showWeeklyChart}
                 onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-                isLogScale={state.isLogScale}
               />
             ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
