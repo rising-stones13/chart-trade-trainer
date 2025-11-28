@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { Download, Settings2, Loader2, Sigma } from 'lucide-react';
+import { Download, Settings2, Loader2, Sigma, Palette } from 'lucide-react';
 import { SidebarHeader, SidebarGroup, SidebarGroupLabel, SidebarGroupContent } from './ui/sidebar';
 
 interface ControlPanelProps {
@@ -18,6 +18,9 @@ interface ControlPanelProps {
   isLoading: boolean;
   onWeeklyChartToggle: () => void;
   onMaSettingsToggle: () => void;
+  upColor: string;
+  downColor: string;
+  onCandleColorChange: (target: 'upColor' | 'downColor', color: string) => void;
 }
 
 export function ControlPanel({
@@ -29,6 +32,9 @@ export function ControlPanel({
   isLoading,
   onWeeklyChartToggle,
   onMaSettingsToggle,
+  upColor,
+  downColor,
+  onCandleColorChange,
 }: ControlPanelProps) {
   return (
     <div className="flex flex-col h-full">
@@ -78,6 +84,35 @@ export function ControlPanel({
                 <Button variant="outline" size="icon" onClick={onMaSettingsToggle}>
                     <Sigma className="h-4 w-4" />
                 </Button>
+            </div>
+            
+            <div>
+              <Label className="flex items-center gap-2 mb-2">
+                <Palette className="h-4 w-4" />
+                チャート配色
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="up-color-picker" className="text-sm">陽線</Label>
+                      <Input 
+                        id="up-color-picker" 
+                        type="color" 
+                        value={upColor}
+                        onChange={(e) => onCandleColorChange('upColor', e.target.value)}
+                        className="h-8 w-12 p-1" 
+                      />
+                  </div>
+                  <div className="flex items-center gap-2">
+                      <Label htmlFor="down-color-picker" className="text-sm">陰線</Label>
+                      <Input 
+                        id="down-color-picker" 
+                        type="color" 
+                        value={downColor}
+                        onChange={(e) => onCandleColorChange('downColor', e.target.value)}
+                        className="h-8 w-12 p-1" 
+                      />
+                  </div>
+              </div>
             </div>
 
           </SidebarGroupContent>

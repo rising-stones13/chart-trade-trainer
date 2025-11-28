@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { createChart, IChartApi, ISeriesApi, CrosshairMode, LogicalRange } from 'lightweight-charts';
+import { createChart, IChartApi, ISeriesApi, CrosshairMode, LogicalRange, ChartOptions } from 'lightweight-charts';
 import { calculateMA } from '@/lib/data-helpers';
 import type { CandleData, Position, Trade, MAConfig } from '@/types';
 import { DraggableWindow } from './draggable-window';
@@ -15,45 +15,41 @@ interface StockChartProps {
   maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
   onCloseWeeklyChart: () => void;
+  upColor: string;
+  downColor: string;
 }
 
-const chartColors = {
-  background: '#15191E',
-  textColor: 'rgba(230, 230, 230, 0.9)',
-  grid: '#2a2e39',
-  border: '#3a3e4a',
-  upColor: '#ef5350', // Red for up candles (Yosen)
-  downColor: '#2196F3', // Darker Blue for down candles (Insen)
-};
-
-const chartOptions = {
+const getChartOptions = (upColor: string, downColor: string): Omit<ChartOptions, 'width' | 'height'> => ({
   layout: {
-    background: { color: chartColors.background },
-    textColor: chartColors.textColor,
+    background: { color: '#15191E' },
+    textColor: 'rgba(230, 230, 230, 0.9)',
   },
   grid: {
-    vertLines: { color: chartColors.grid },
-    horzLines: { color: chartColors.grid },
+    vertLines: { color: '#2a2e39' },
+    horzLines: { color: '#2a2e39' },
   },
   crosshair: { mode: CrosshairMode.Magnet },
-  rightPriceScale: { borderColor: chartColors.border },
-  timeScale: { borderColor: chartColors.border, timeVisible: true, secondsVisible: false },
-};
+  rightPriceScale: { borderColor: '#3a3e4a' },
+  timeScale: { borderColor: '#3a3e4a', timeVisible: true, secondsVisible: false },
+});
 
-const candleSeriesOptions = {
-  upColor: chartColors.upColor,
-  downColor: chartColors.downColor,
-  borderDownColor: chartColors.downColor,
-  borderUpColor: chartColors.upColor,
-  wickDownColor: chartColors.downColor,
-  wickUpColor: chartColors.upColor,
-};
+const getCandleSeriesOptions = (upColor: string, downColor: string) => ({
+  upColor: upColor,
+  downColor: downColor,
+  borderDownColor: downColor,
+  borderUpColor: upColor,
+  wickDownColor: downColor,
+  wickUpColor: upColor,
+});
 
-function WeeklyChart({ data }: { data: CandleData[] }) {
+function WeeklyChart({ data, upColor, downColor }: { data: CandleData[], upColor: string, downColor: string }) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
+
+    const chartOptions = getChartOptions(upColor, downColor);
+    const candleOptions = getCandleSeriesOptions(upColor, downColor);
 
     const chart = createChart(chartContainerRef.current, {
       ...chartOptions,
@@ -61,7 +57,7 @@ function WeeklyChart({ data }: { data: CandleData[] }) {
       height: chartContainerRef.current.clientHeight,
     });
     
-    const candleSeries = chart.addCandlestickSeries(candleSeriesOptions);
+    const candleSeries = chart.addCandlestickSeries(candleOptions);
     candleSeries.setData(data);
     
     const handleResize = () => chart.applyOptions({ width: chartContainerRef.current!.clientWidth, height: chartContainerRef.current!.clientHeight });
@@ -73,7 +69,7 @@ function WeeklyChart({ data }: { data: CandleData[] }) {
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [data]);
+  }, [data, upColor, downColor]);
   
   return <div ref={chartContainerRef} className="w-full h-full" />;
 }
@@ -87,6 +83,8 @@ export function StockChart({
   maConfigs,
   showWeeklyChart,
   onCloseWeeklyChart,
+  upColor,
+  downColor,
 }: StockChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -97,16 +95,16 @@ export function StockChart({
   useEffect(() => {
     if (!chartContainerRef.current) return;
     
-    const chart = createChart(chartContainerRef.current, chartOptions);
-    chartRef.current = chart;
+    const chartOptions = getChartOptions(upColor, downColor);
+    chartRef.current = createChart(chartContainerRef.current, chartOptions);
+    const chart = chartRef.current;
     
-    const candleSeries = chart.addCandlestickSeries(candleSeriesOptions);
-    candleSeriesRef.current = candleSeries;
+    const candleSeriesOptions = getCandleSeriesOptions(upColor, downColor);
+    candleSeriesRef.current = chart.addCandlestickSeries(candleSeriesOptions);
     
     const volumeSeries = chart.addHistogramSeries({
       priceFormat: { type: 'volume' },
       priceScaleId: 'volume_scale',
-      color: 'rgba(128, 128, 128, 0.5)',
     });
     chart.priceScale('volume_scale').applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
     volumeSeriesRef.current = volumeSeries;
@@ -128,15 +126,22 @@ export function StockChart({
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
+      chartRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
+  
+  // Effect for updating data and dynamic options
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !volumeSeriesRef.current) return;
+    
+    // Update colors
+    const candleOptions = getCandleSeriesOptions(upColor, downColor);
+    candleSeriesRef.current.applyOptions(candleOptions);
 
+    // Update data
     candleSeriesRef.current.setData(chartData);
-    const volumeData = chartData.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? chartColors.upColor : chartColors.downColor }));
+    const volumeData = chartData.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? upColor : downColor }));
     volumeSeriesRef.current.setData(volumeData);
 
     Object.values(maConfigs).forEach(config => {
@@ -149,15 +154,16 @@ export function StockChart({
         }
     });
     
-    if (chartData.length > 1) {
-      const dataLength = chartData.length;
-      const from = Math.max(0, dataLength - 30);
-      const to = dataLength - 1;
-      
-      chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
+    if (replayIndex === null && chartData.length > 1) {
+      chartRef.current.timeScale().fitContent();
+    } else if (replayIndex !== null && chartData.length > 1) {
+       const dataLength = chartData.length;
+       const to = dataLength - 1;
+       const from = Math.max(0, to - 100);
+       chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
     }
     
-  }, [chartData, maConfigs]);
+  }, [chartData, maConfigs, upColor, downColor, replayIndex]);
   
   useEffect(() => {
     if (!candleSeriesRef.current) return;
@@ -169,13 +175,13 @@ export function StockChart({
         if (isTrade) {
             const trade = p as Trade;
             return [
-                { time: trade.entryDate, position: trade.type === 'long' ? 'belowBar' : 'aboveBar', color: chartColors.downColor, shape: 'arrowUp' as const, text: `E` },
-                { time: trade.exitDate, position: trade.type === 'long' ? 'aboveBar' : 'belowBar', color: trade.profit > 0 ? chartColors.upColor : chartColors.downColor, shape: 'arrowDown' as const, text: `X` },
+                { time: trade.entryDate, position: trade.type === 'long' ? 'belowBar' : 'aboveBar', color: downColor, shape: 'arrowUp' as const, text: `E` },
+                { time: trade.exitDate, position: trade.type === 'long' ? 'aboveBar' : 'belowBar', color: trade.profit > 0 ? upColor : downColor, shape: 'arrowDown' as const, text: `X` },
             ];
         }
 
         const position = p as Position;
-        return { time: position.entryDate, position: position.type === 'long' ? 'belowBar' : 'aboveBar', color: position.type === 'long' ? chartColors.downColor : chartColors.upColor, shape: 'circle' as const, text: `${position.type.charAt(0).toUpperCase()}` };
+        return { time: position.entryDate, position: position.type === 'long' ? 'belowBar' : 'aboveBar', color: position.type === 'long' ? downColor : upColor, shape: 'circle' as const, text: `${position.type.charAt(0).toUpperCase()}` };
     }).flat();
 
     const sortedMarkers = markers.sort((a, b) => {
@@ -186,13 +192,13 @@ export function StockChart({
     
     candleSeriesRef.current.setMarkers(sortedMarkers);
     
-  }, [positions, tradeHistory]);
+  }, [positions, tradeHistory, upColor, downColor]);
 
   return (
     <div className="w-full h-full relative">
       <div ref={chartContainerRef} className="w-full h-full" />
       <DraggableWindow title="週足チャート" isOpen={showWeeklyChart} onClose={onCloseWeeklyChart}>
-        <WeeklyChart data={weeklyData} />
+        <WeeklyChart data={weeklyData} upColor={upColor} downColor={downColor} />
       </DraggableWindow>
     </div>
   );

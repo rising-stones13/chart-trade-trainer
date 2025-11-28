@@ -22,7 +22,8 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_REPLAY_DATE'; payload: Date | null };
+  | { type: 'SET_REPLAY_DATE'; payload: Date | null }
+  | { type: 'SET_CANDLE_COLOR'; payload: { target: 'upColor' | 'downColor'; color: string } };
 
 const initialMAConfigs: Record<string, MAConfig> = {
   '5': { period: 5, color: '#FF5252', visible: true },
@@ -54,6 +55,8 @@ const initialState: AppStateWithLocal = {
   unrealizedPL: 0,
   maConfigs: initialMAConfigs,
   showWeeklyChart: false,
+  upColor: '#ef5350',
+  downColor: '#2196F3',
 };
 
 function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
@@ -64,6 +67,8 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
         ...initialState, // Reset everything except UI settings
         maConfigs: state.maConfigs,
         showWeeklyChart: state.showWeeklyChart,
+        upColor: state.upColor,
+        downColor: state.downColor,
         chartData: data,
         weeklyData: generateWeeklyData(data),
         chartTitle: title,
@@ -162,6 +167,11 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
         unrealizedPL: 0,
         currentReplayDate: null,
       };
+    case 'SET_CANDLE_COLOR':
+      return {
+        ...state,
+        [action.payload.target]: action.payload.color,
+      };
     default:
       return state;
   }
@@ -210,6 +220,10 @@ export default function ChartTradeTrainer() {
     }
   }
 
+  const handleSetCandleColor = (target: 'upColor' | 'downColor', color: string) => {
+    dispatch({ type: 'SET_CANDLE_COLOR', payload: { target, color } });
+  };
+
   const displayedChartData = useMemo(() => {
       return state.isReplay && state.replayIndex !== null
         ? state.chartData.slice(0, state.replayIndex + 1)
@@ -243,6 +257,9 @@ export default function ChartTradeTrainer() {
                     isLoading={isLoading}
                     onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
                     onMaSettingsToggle={() => setIsMaSettingsOpen(true)}
+                    upColor={state.upColor}
+                    downColor={state.downColor}
+                    onCandleColorChange={handleSetCandleColor}
                   />
                 </div>
             </SheetContent>
@@ -260,7 +277,7 @@ export default function ChartTradeTrainer() {
               </div>
             ) : state.fileLoaded ? (
               <StockChart
-                key={state.chartTitle}
+                key={`${state.chartTitle}-${state.upColor}-${state.downColor}`}
                 chartData={displayedChartData}
                 weeklyData={state.weeklyData}
                 positions={state.positions}
@@ -269,6 +286,8 @@ export default function ChartTradeTrainer() {
                 showWeeklyChart={state.showWeeklyChart}
                 onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
                 replayIndex={state.replayIndex}
+                upColor={state.upColor}
+                downColor={state.downColor}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">

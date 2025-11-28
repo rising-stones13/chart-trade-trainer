@@ -47,4 +47,6 @@ export type AppState = {
   tradeHistory: Trade[];
   maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
+  upColor: string;
+  downColor: string;
 };
