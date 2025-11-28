@@ -28,8 +28,8 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
       <CardHeader className="p-4">
         <CardTitle className="text-lg">模擬トレード</CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4 flex flex-col gap-2">
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="px-4 pb-4 flex flex-col gap-1">
+        <div className="grid grid-cols-2 gap-2">
           <Button onClick={() => onTrade('long')} disabled={!isReplay} className="bg-blue-600 hover:bg-blue-700 text-white" size="sm">
             <ArrowUp className="mr-2 h-4 w-4" /> 買い
           </Button>
@@ -54,7 +54,7 @@ export function TradePanel({ isReplay, positions, realizedPL, unrealizedPL, onTr
             <div className={`text-2xl font-bold ${totalPL >= 0 ? 'text-green-300' : 'text-red-300'}`}>{formatCurrency(totalPL)}</div>
         </div>
 
-        <div className="flex-grow flex flex-col mt-2">
+        <div className="flex-grow flex flex-col">
             <h3 className="text-md font-semibold mb-2">保有ポジション</h3>
             <ScrollArea className="flex-grow">
                 <Table>
