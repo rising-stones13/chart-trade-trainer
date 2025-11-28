@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createChart, IChartApi, ISeriesApi, UTCTimestamp, Time, LineStyle, CrosshairMode, PriceScaleMode, LogicalRange } from 'lightweight-charts';
 import type { CandleData, LineData, Position, Trade, MAConfig } from '@/types';
 import { DraggableWindow } from './draggable-window';
@@ -105,9 +105,7 @@ export function StockChart({
   const volumeSeriesRef = useRef<ISeriesApi<'Histogram'>>(null);
   const maSeriesRefs = useRef<Record<string, ISeriesApi<'Line'>>>({});
   
-  const chartData = useMemo(() => {
-    return replayIndex !== null ? dailyData.slice(0, replayIndex + 1) : dailyData;
-  }, [dailyData, replayIndex]);
+  const chartData = replayIndex !== null ? dailyData.slice(0, replayIndex + 1) : dailyData;
   
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -164,6 +162,8 @@ export function StockChart({
   
   useEffect(() => {
     if (!chartRef.current || !maData) return;
+
+    console.log('Updating MAs. maData:', maData);
 
     const lastVisibleTime = chartData.length > 0 ? new Date(chartData[chartData.length - 1].time as string).getTime() : null;
 
