@@ -11,13 +11,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { CalendarIcon, Download, Play, Settings2, Sigma, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
-import type { MAConfig } from '@/types';
+import { SheetTrigger } from '@/components/ui/sheet';
 
 interface ControlPanelProps {
   fileLoaded: boolean;
   isReplay: boolean;
   replayDate: Date | null;
-  maConfigs: Record<string, MAConfig>;
   showWeeklyChart: boolean;
   ticker: string;
   onTickerChange: (ticker: string) => void;
@@ -26,7 +25,6 @@ interface ControlPanelProps {
   onStartReplay: () => void;
   onNextDay: () => void;
   onDateChange: (date?: Date) => void;
-  onMaToggle: (period: string) => void;
   onWeeklyChartToggle: () => void;
 }
 
@@ -34,7 +32,6 @@ export function ControlPanel({
   fileLoaded,
   isReplay,
   replayDate,
-  maConfigs,
   showWeeklyChart,
   ticker,
   onTickerChange,
@@ -43,7 +40,6 @@ export function ControlPanel({
   onStartReplay,
   onNextDay,
   onDateChange,
-  onMaToggle,
   onWeeklyChartToggle,
 }: ControlPanelProps) {
 
@@ -112,19 +108,12 @@ export function ControlPanel({
               <Switch id="weekly-chart-toggle" checked={showWeeklyChart} onCheckedChange={onWeeklyChartToggle} />
             </div>
             
-            <div>
-              <Label className="font-medium">移動平均線 (MA)</Label>
-              <div className="space-y-3 mt-2">
-                {Object.values(maConfigs).map(config => (
-                  <div key={config.period} className="flex items-center justify-between">
-                    <Label htmlFor={`ma-toggle-${config.period}`} style={{ color: config.color }}>
-                      {config.period}日 MA
-                    </Label>
-                    <Switch id={`ma-toggle-${config.period}`} checked={config.visible} onCheckedChange={() => onMaToggle(config.period.toString())} />
-                  </div>
-                ))}
-              </div>
-            </div>
+             <SheetTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <Sigma className="mr-2 h-4 w-4" />
+                移動平均線 設定
+              </Button>
+            </SheetTrigger>
           </div>
         </div>
       </CardContent>
