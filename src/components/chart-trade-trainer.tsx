@@ -23,11 +23,11 @@ type Action =
   | { type: 'SET_REPLAY_DATE'; payload: Date | null };
 
 const initialMAConfigs: Record<string, MAConfig> = {
-  '5': { period: 5, color: '#2962FF', visible: true },
-  '10': { period: 10, color: '#C2185B', visible: false },
-  '20': { period: 20, color: '#FF6D00', visible: true },
-  '50': { period: 50, color: '#00897B', visible: true },
-  '100': { period: 100, color: '#FDD835', visible: false },
+  '5': { period: 5, color: 'red', visible: true },
+  '10': { period: 10, color: 'green', visible: false },
+  '20': { period: 20, color: 'blue', visible: true },
+  '50': { period: 50, color: 'purple', visible: true },
+  '100': { period: 100, color: 'orange', visible: false },
 };
 
 type AppStateWithLocal = AppState & {
