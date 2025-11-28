@@ -154,13 +154,17 @@ export function StockChart({
         }
     });
     
-    if (replayIndex === null && chartData.length > 1) {
-      chartRef.current.timeScale().fitContent();
-    } else if (replayIndex !== null && chartData.length > 1) {
-       const dataLength = chartData.length;
-       const to = dataLength - 1;
-       const from = Math.max(0, to - 100);
-       chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
+    const dataLength = chartData.length;
+    if (dataLength > 1) {
+      if (replayIndex === null) {
+        const to = dataLength - 1;
+        const from = Math.max(0, to - 40);
+        chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
+      } else {
+        const to = replayIndex;
+        const from = Math.max(0, to - 100);
+        chartRef.current.timeScale().setVisibleLogicalRange({ from, to } as LogicalRange);
+      }
     }
     
   }, [chartData, maConfigs, upColor, downColor, replayIndex]);
