@@ -54,20 +54,24 @@ function reducer(state: typeof initialState, action: Action): typeof initialStat
       const { data, title } = action.payload;
       const maData = Object.fromEntries(
         Object.values(state.maConfigs).map(config => [
-          config.period,
+          config.period.toString(), // Convert period to string key
           calculateMA(data, config.period),
         ])
       );
       return {
-        ...initialState, // Reset most state
-        maConfigs: state.maConfigs, // But preserve maConfigs
-        isLogScale: state.isLogScale, // and other UI settings
-        showWeeklyChart: state.showWeeklyChart,
+        ...state,
         chartData: data,
         weeklyData: generateWeeklyData(data),
         maData: maData,
         chartTitle: title,
         fileLoaded: true,
+        replayIndex: null, // Reset replay state
+        isReplay: false,
+        replayDate: null,
+        positions: [],
+        tradeHistory: [],
+        realizedPL: 0,
+        unrealizedPL: 0,
       };
     }
     case 'START_REPLAY': {
