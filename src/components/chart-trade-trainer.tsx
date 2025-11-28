@@ -151,7 +151,17 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
     case 'TOGGLE_WEEKLY_CHART':
       return { ...state, showWeeklyChart: !state.showWeeklyChart };
     case 'SET_REPLAY_DATE':
-      return { ...state, replayDate: action.payload };
+      return {
+        ...state,
+        replayDate: action.payload,
+        isReplay: false,
+        replayIndex: null,
+        positions: [],
+        tradeHistory: [],
+        realizedPL: 0,
+        unrealizedPL: 0,
+        currentReplayDate: null,
+      };
     default:
       return state;
   }
@@ -214,25 +224,27 @@ export default function ChartTradeTrainer() {
               <Button variant="ghost" size="icon"><Menu /></Button>
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-[320px]">
-                <SheetHeader>
+                <SheetHeader className="p-4 border-b">
                     <SheetTitle>コントロールパネル</SheetTitle>
                 </SheetHeader>
-                <MaSettingsPanel
-                  maConfigs={state.maConfigs}
-                  onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
-                  open={isMaSettingsOpen}
-                  onOpenChange={setIsMaSettingsOpen}
-                />
-                <ControlPanel
-                  fileLoaded={state.fileLoaded}
-                  showWeeklyChart={state.showWeeklyChart}
-                  ticker={ticker}
-                  onTickerChange={setTicker}
-                  onFetchData={() => handleFetchData(ticker)}
-                  isLoading={isLoading}
-                  onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-                  onMaSettingsToggle={() => setIsMaSettingsOpen(true)}
-                />
+                <div className="p-4">
+                  <MaSettingsPanel
+                    maConfigs={state.maConfigs}
+                    onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
+                    open={isMaSettingsOpen}
+                    onOpenChange={setIsMaSettingsOpen}
+                  />
+                  <ControlPanel
+                    fileLoaded={state.fileLoaded}
+                    showWeeklyChart={state.showWeeklyChart}
+                    ticker={ticker}
+                    onTickerChange={setTicker}
+                    onFetchData={() => handleFetchData(ticker)}
+                    isLoading={isLoading}
+                    onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+                    onMaSettingsToggle={() => setIsMaSettingsOpen(true)}
+                  />
+                </div>
             </SheetContent>
           </Sheet>
           <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
