@@ -1,17 +1,16 @@
 'use client';
 
-import React, { useReducer, useCallback, useMemo, useState, useEffect } from 'react';
-import { getStockData } from '@/app/actions';
+import React, { useReducer, useCallback, useMemo, useState, useRef } from 'react';
+import { getStockInfoFromFilename } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { generateWeeklyData } from '@/lib/data-helpers';
+import { generateWeeklyData, parseCSV } from '@/lib/data-helpers';
 import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
-import { LineChart, Loader2, Menu, Download, AreaChart, ArrowLeft } from 'lucide-react';
+import { LineChart, Loader2, Menu, ArrowLeft, AreaChart, FolderOpen } from 'lucide-react';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
 type Action =
@@ -231,38 +230,43 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
 export default function ChartTradeTrainer() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { toast } = useToast();
-  const [ticker, setTicker] = useState('7203');
   const [isLoading, setIsLoading] = useState(false);
   const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const handleFetchData = useCallback(async (newTicker: string) => {
-    if (!newTicker) {
-      toast({ variant: 'destructive', title: 'エラー', description: '銘柄コードを入力してください。' });
-      return;
-    }
     setIsLoading(true);
     try {
-      const result = await getStockData(newTicker);
-      if ('error' in result) {
-        toast({ variant: 'destructive', title: 'エラー', description: result.error });
+      const stockInfoPromise = getStockInfoFromFilename(file.name);
+      const fileContentPromise = file.text();
+      
+      const [stockInfoResult, csvText] = await Promise.all([stockInfoPromise, fileContentPromise]);
+
+      const data = parseCSV(csvText);
+
+      let title = file.name;
+      if ('tickerSymbol' in stockInfoResult) {
+        title = `${stockInfoResult.companyNameJapanese} (${stockInfoResult.tickerSymbol})`;
       } else {
-        const { data, info } = result;
-        const title = `${info.companyNameJapanese} (${newTicker})`;
-        dispatch({ type: 'SET_CHART_DATA', payload: { data, title } });
+         toast({ variant: 'destructive', title: 'AIによる銘柄特定失敗', description: stockInfoResult.error });
       }
+
+      dispatch({ type: 'SET_CHART_DATA', payload: { data, title } });
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'データの取得に失敗しました。';
+      const errorMessage = error instanceof Error ? error.message : 'ファイルの処理中にエラーが発生しました。';
       toast({ variant: 'destructive', title: 'エラー', description: errorMessage });
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
+      // Reset file input to allow re-uploading the same file
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-  }, [toast]);
-  
-  useEffect(() => {
-    handleFetchData('7203');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  };
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
@@ -345,18 +349,17 @@ export default function ChartTradeTrainer() {
           <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
           
           <div className="flex items-center gap-2 ml-auto">
-            <Input
-              id="ticker-input"
-              type="text"
-              placeholder="例: 7203"
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value)}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept=".csv"
+              style={{ display: 'none' }}
               disabled={isLoading}
-              className="w-24"
             />
-            <Button onClick={() => handleFetchData(ticker)} disabled={isLoading || !ticker} size="sm">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-              {isLoading ? '' : '取得'}
+            <Button onClick={() => fileInputRef.current?.click()} disabled={isLoading} size="sm">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderOpen className="mr-2 h-4 w-4" />}
+              {isLoading ? '読込中...' : 'ファイルを開く'}
             </Button>
           </div>
       </header>
@@ -364,7 +367,7 @@ export default function ChartTradeTrainer() {
       <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         <main className="flex flex-col bg-background flex-1 min-h-0">
           <div className="flex-grow relative">
-            {isLoading && !state.fileLoaded ? (
+            {isLoading ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <Loader2 className="w-16 h-16 mb-4 animate-spin" />
                 <p>データを読み込んでいます...</p>
@@ -387,7 +390,7 @@ export default function ChartTradeTrainer() {
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                 <LineChart className="w-24 h-24 mb-4" />
                 <h2 className="text-2xl font-semibold">ChartTrade Trainer</h2>
-                <p>左のパネルから銘柄コードを入力してデータを取得します。</p>
+                <p>右上の「ファイルを開く」から株価データ(CSV)を読み込みます。</p>
               </div>
             )}
           </div>
