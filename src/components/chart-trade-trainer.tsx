@@ -8,11 +8,20 @@ import type { AppState, CandleData, MAConfig, Position, Trade } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
-import { LineChart, Loader2 } from 'lucide-react';
+import { LineChart, Loader2, Menu } from 'lucide-react';
 import { MaSettingsPanel } from './ma-settings-panel';
-import { Sheet, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet';
 import { Button } from './ui/button';
 import { Sigma } from 'lucide-react';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarTrigger,
+  SidebarInset,
+} from './ui/sidebar';
 
 type Action =
   | { type: 'SET_CHART_DATA'; payload: { data: CandleData[]; title: string } }
@@ -204,79 +213,92 @@ export default function ChartTradeTrainer() {
   }, [state.isReplay, state.replayIndex, state.chartData]);
 
   return (
-    <Sheet open={isMaSettingsOpen} onOpenChange={setIsMaSettingsOpen}>
-      <div className="flex flex-col lg:grid lg:grid-cols-[320px_1fr_300px] lg:h-screen font-body">
-        <aside className="lg:border-r lg:border-border lg:flex lg:flex-col lg:h-screen">
-          <ControlPanel
-            fileLoaded={state.fileLoaded}
-            isReplay={state.isReplay}
-            replayDate={state.replayDate}
-            showWeeklyChart={state.showWeeklyChart}
-            ticker={ticker}
-            onTickerChange={setTicker}
-            onFetchData={() => handleFetchData(ticker)}
-            isLoading={isLoading}
-            onStartReplay={handleStartReplay}
-            onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
-            onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
-            onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-          >
-            <SheetTrigger asChild>
-              <Button variant="outline" className="w-full">
-                <Sigma className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-          </ControlPanel>
-        </aside>
+    <SidebarProvider>
+      <Sheet open={isMaSettingsOpen} onOpenChange={setIsMaSettingsOpen}>
+        <div className="flex h-screen font-body bg-background text-foreground">
+          <Sidebar collapsible="offcanvas" className="group-data-[collapsible=icon]:hidden lg:group-data-[collapsible=icon]:block lg:w-[320px]">
+            <SidebarContent className="p-0">
+              <ControlPanel
+                fileLoaded={state.fileLoaded}
+                isReplay={state.isReplay}
+                replayDate={state.replayDate}
+                showWeeklyChart={state.showWeeklyChart}
+                ticker={ticker}
+                onTickerChange={setTicker}
+                onFetchData={() => handleFetchData(ticker)}
+                isLoading={isLoading}
+                onStartReplay={handleStartReplay}
+                onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
+                onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
+                onWeeklyChartToggle={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+              >
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="w-full">
+                    <Sigma className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+              </ControlPanel>
+            </SidebarContent>
+          </Sidebar>
 
-        <main className="flex flex-col bg-background h-[60vh] lg:h-screen">
-          <header className="p-4 border-b border-border">
-            <h1 className="text-xl font-bold truncate">{state.chartTitle}</h1>
-          </header>
-          <div className="flex-grow relative">
-              {isLoading && !state.fileLoaded ? (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <header className="p-2 border-b border-border flex items-center gap-2 lg:hidden">
+                <SidebarTrigger><Menu /></SidebarTrigger>
+                <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
+            </header>
+
+            <div className="flex-1 flex flex-col lg:grid lg:grid-cols-[1fr_300px] overflow-hidden">
+              <main className="flex flex-col bg-background h-full overflow-auto">
+                <header className="p-4 border-b border-border hidden lg:block">
+                  <h1 className="text-xl font-bold truncate">{state.chartTitle}</h1>
+                </header>
+                <div className="flex-grow relative h-[50vh] lg:h-auto">
+                  {isLoading && !state.fileLoaded ? (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <Loader2 className="w-16 h-16 mb-4 animate-spin" />
                       <p>データを読み込んでいます...</p>
-                  </div>
-              ) : state.fileLoaded ? (
-                <StockChart
-                  key={state.chartTitle} // Force re-mount when data changes completely
-                  chartData={displayedChartData}
-                  weeklyData={state.weeklyData}
-                  positions={state.positions}
-                  tradeHistory={state.tradeHistory}
-                  maConfigs={state.maConfigs}
-                  showWeeklyChart={state.showWeeklyChart}
-                  onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-                  replayIndex={state.replayIndex}
-                />
-              ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                    </div>
+                  ) : state.fileLoaded ? (
+                    <StockChart
+                      key={state.chartTitle}
+                      chartData={displayedChartData}
+                      weeklyData={state.weeklyData}
+                      positions={state.positions}
+                      tradeHistory={state.tradeHistory}
+                      maConfigs={state.maConfigs}
+                      showWeeklyChart={state.showWeeklyChart}
+                      onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+                      replayIndex={state.replayIndex}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                       <LineChart className="w-24 h-24 mb-4" />
                       <h2 className="text-2xl font-semibold">ChartTrade Trainer</h2>
                       <p>左のパネルから銘柄コードを入力してデータを取得します。</p>
-                  </div>
-              )}
+                    </div>
+                  )}
+                </div>
+              </main>
+
+              <aside className="lg:border-l lg:border-border flex-col flex h-full">
+                <TradePanel
+                  isReplay={state.isReplay}
+                  positions={state.positions}
+                  realizedPL={state.realizedPL}
+                  unrealizedPL={state.unrealizedPL}
+                  onTrade={(type) => dispatch({ type: 'TRADE', payload: type })}
+                  onClosePosition={(id) => dispatch({ type: 'CLOSE_POSITION', payload: id })}
+                />
+              </aside>
+            </div>
           </div>
-        </main>
-
-        <aside className="lg:border-l lg:border-border flex-col lg:h-screen flex">
-          <TradePanel
-              isReplay={state.isReplay}
-              positions={state.positions}
-              realizedPL={state.realizedPL}
-              unrealizedPL={state.unrealizedPL}
-              onTrade={(type) => dispatch({ type: 'TRADE', payload: type })}
-              onClosePosition={(id) => dispatch({ type: 'CLOSE_POSITION', payload: id })}
-          />
-        </aside>
-
+        </div>
+        
         <MaSettingsPanel
-          maConfigs={state.maConfigs} 
+          maConfigs={state.maConfigs}
           onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
         />
-      </div>
-    </Sheet>
+      </Sheet>
+    </SidebarProvider>
   );
 }
