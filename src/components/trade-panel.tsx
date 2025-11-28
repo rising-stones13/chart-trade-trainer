@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowDown, ArrowUp, CalendarIcon, Play, Forward } from 'lucide-react';
+import { ArrowDown, ArrowUp, CalendarIcon, Forward } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -21,7 +21,6 @@ interface TradePanelProps {
   unrealizedPL: number;
   onTrade: (type: 'long' | 'short') => void;
   onClosePosition: (positionType: 'long' | 'short') => void;
-  onStartReplay: () => void;
   onNextDay: () => void;
   onDateChange: (date?: Date) => void;
 }
@@ -36,7 +35,6 @@ export function TradePanel({
   unrealizedPL, 
   onTrade, 
   onClosePosition,
-  onStartReplay,
   onNextDay,
   onDateChange,
 }: TradePanelProps) {
@@ -64,11 +62,7 @@ export function TradePanel({
               <Calendar mode="single" selected={replayDate || undefined} onSelect={onDateChange} initialFocus />
             </PopoverContent>
           </Popover>
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={onStartReplay} disabled={!replayDate || isReplay} size="sm">
-              <Play className="mr-2 h-4 w-4" />
-              リプレイ開始
-            </Button>
+          <div className="grid grid-cols-1 gap-2">
             <Button onClick={onNextDay} disabled={!isReplay} size="sm">
               <Forward className="mr-2 h-4 w-4" />
               翌日へ進む
@@ -154,3 +148,5 @@ export function TradePanel({
     </Card>
   );
 }
+
+    

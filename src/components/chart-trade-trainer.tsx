@@ -23,7 +23,6 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
-  | { type: 'SET_REPLAY_DATE'; payload: Date | null }
   | { type: 'SET_CANDLE_COLOR'; payload: { target: 'upColor' | 'downColor'; color: string } };
 
 const initialMAConfigs: Record<string, MAConfig> = {
@@ -35,7 +34,6 @@ const initialMAConfigs: Record<string, MAConfig> = {
 };
 
 type AppStateWithLocal = AppState & {
-  replayDate: Date | null,
   unrealizedPL: number,
   realizedPL: number,
 };
@@ -48,7 +46,6 @@ const initialState: AppStateWithLocal = {
   replayIndex: null,
   isReplay: false,
   currentReplayDate: null,
-  replayDate: null,
   positions: [],
   tradeHistory: [],
   realizedPL: 0,
@@ -80,7 +77,7 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       const startIndex = state.chartData.findIndex(d => new Date(d.time as string) >= date);
       if (startIndex === -1) return state; // Or show error
       const currentReplayDate = state.chartData[startIndex].time as string;
-      return { ...state, replayIndex: startIndex, isReplay: true, replayDate: date, currentReplayDate, positions: [], tradeHistory: [], realizedPL: 0, unrealizedPL: 0 };
+      return { ...state, replayIndex: startIndex, isReplay: true, currentReplayDate, positions: [], tradeHistory: [], realizedPL: 0, unrealizedPL: 0 };
     }
     case 'NEXT_DAY': {
       if (state.replayIndex === null || state.replayIndex >= state.chartData.length - 1) {
@@ -224,18 +221,6 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       };
     case 'TOGGLE_WEEKLY_CHART':
       return { ...state, showWeeklyChart: !state.showWeeklyChart };
-    case 'SET_REPLAY_DATE':
-      return {
-        ...state,
-        replayDate: action.payload,
-        isReplay: false,
-        replayIndex: null,
-        positions: [],
-        tradeHistory: [],
-        realizedPL: 0,
-        unrealizedPL: 0,
-        currentReplayDate: null,
-      };
     case 'SET_CANDLE_COLOR':
       return {
         ...state,
@@ -283,11 +268,11 @@ export default function ChartTradeTrainer() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleStartReplay = () => {
-    if(state.replayDate) {
-        dispatch({ type: 'START_REPLAY', payload: state.replayDate });
+  const handleDateChange = (date: Date | undefined) => {
+    if (date) {
+      dispatch({ type: 'START_REPLAY', payload: date });
     }
-  }
+  };
 
   const handleSetCandleColor = (target: 'upColor' | 'downColor', color: string) => {
     dispatch({ type: 'SET_CANDLE_COLOR', payload: { target, color } });
@@ -401,19 +386,20 @@ export default function ChartTradeTrainer() {
           <TradePanel
             fileLoaded={state.fileLoaded}
             isReplay={state.isReplay}
-            replayDate={state.replayDate}
+            replayDate={state.isReplay && state.replayIndex !== null ? new Date(state.chartData[state.replayIndex].time as string) : null}
             currentReplayDate={state.currentReplayDate}
             positions={state.positions}
             realizedPL={state.realizedPL}
             unrealizedPL={state.unrealizedPL}
             onTrade={(type) => dispatch({ type: 'TRADE', payload: type })}
             onClosePosition={handlePartialClose}
-            onStartReplay={handleStartReplay}
             onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
-            onDateChange={(date) => dispatch({ type: 'SET_REPLAY_DATE', payload: date || null })}
+            onDateChange={handleDateChange}
           />
         </aside>
       </div>
     </div>
   );
 }
+
+    
