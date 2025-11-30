@@ -34,17 +34,25 @@ export default function PricingPage() {
     }
 
     try {
-      const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, { isPremium: true }, { merge: true });
-      toast({
-        title: "プレミアム登録が完了しました",
-        description: "プレミアム機能が利用可能になりました。",
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.uid, userEmail: user.email }),
       });
-      router.push('/'); // Navigate to home or dashboard after successful registration
+
+      const session = await response.json();
+
+      if (session.url) {
+        router.push(session.url);
+      } else {
+        throw new Error('Failed to create checkout session.');
+      }
     } catch (error) {
       console.error("Error during premium registration:", error);
       toast({
-        title: "プレミアム登録に失敗しました",
+        title: "決済セッションの作成に失敗しました",
         description: "エラーが発生しました。もう一度お試しください。",
         variant: "destructive",
       });

@@ -15,7 +15,7 @@ import {
   reauthenticateWithCredential // Add reauthenticateWithCredential
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase'; // Adjust the import path as necessary
-import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore'; // Add deleteDoc
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore'; // Add deleteDoc, onSnapshot
 
 interface UserData {
     email: string | null;
@@ -54,21 +54,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribeFromUserData: (() => void) | undefined;
+
+    const unsubscribeFromAuth = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          setUserData(userDoc.data() as UserData);
+                  const userDocRef = doc(db, 'users', user.uid);
+                // Subscribe to user data changes
+                unsubscribeFromUserData = onSnapshot(userDocRef, (doc) => {
+                  if (doc.exists()) {
+                    const data = doc.data() as UserData;
+                    setUserData(data);
+                    console.log('AuthContext: User data updated, isPremium:', data.isPremium); // Add this log
+                  } else {
+                    setUserData(null);
+                    console.log('AuthContext: User document does not exist.'); // Add this log
+                  }
+                });      } else {
+        // If user logs out, clear user data and unsubscribe from user data changes
+        if (unsubscribeFromUserData) {
+          unsubscribeFromUserData();
+          unsubscribeFromUserData = undefined; // Reset for next login
         }
-      } else {
         setUserData(null);
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      // Unsubscribe from auth state changes
+      unsubscribeFromAuth();
+      // Unsubscribe from user data changes if it was active
+      if (unsubscribeFromUserData) {
+        unsubscribeFromUserData();
+      }
+    };
   }, []);
 
   const signUp = async (email: string, password: string) => {

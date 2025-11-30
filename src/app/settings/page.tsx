@@ -75,6 +75,47 @@ export default function SettingsPage() {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "エラー",
+        description: "ログインが必要です。",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.uid }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: "プレミアムプランを解除しました",
+          description: "次回の課金サイクルで無料プランに移行します。",
+        });
+        // ユーザーデータの再取得やステートの更新
+        // ここでは一旦ページをリロードして最新のデータを取得することを想定
+        router.reload(); 
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "サブスクリプションの解除に失敗しました。");
+      }
+    } catch (error: any) {
+      console.error("Error canceling subscription:", error);
+      toast({
+        variant: "destructive",
+        title: "サブスクリプション解除に失敗しました",
+        description: error.message || "予期せぬエラーが発生しました。",
+      });
+    }
+  };
+
   if (loading || !user) {
     return (
       <main className="flex items-center justify-center min-h-screen">
@@ -116,6 +157,56 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {userData?.isPremium && (
+          <Card>
+            <CardHeader>
+              <CardTitle>プレミアムプラン管理</CardTitle>
+              <CardDescription>
+                現在のプレミアムプランの状況を確認し、必要に応じて解除できます。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-medium">次回の課金期間終了日:</p>
+                <p className="text-lg">
+                  {userData.currentPeriodEnd ? new Date(userData.currentPeriodEnd * 1000).toLocaleDateString() : '不明'}
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="w-full">プレミアムプランを解除する</Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>本当にプレミアムプランを解除しますか？</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      プランを解除すると、次回の課金日から無料プランに移行します。それまではプレミアム機能を利用できます。
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleCancelSubscription} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      解除する
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>ログアウト</CardTitle>
+            <CardDescription>
+              現在のアカウントからログアウトします。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={handleLogout} variant="outline">ログアウト</Button>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>アカウント削除</CardTitle>
@@ -143,18 +234,6 @@ export default function SettingsPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>ログアウト</CardTitle>
-            <CardDescription>
-              現在のアカウントからログアウトします。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={handleLogout} variant="outline">ログアウト</Button>
           </CardContent>
         </Card>
       </div>
