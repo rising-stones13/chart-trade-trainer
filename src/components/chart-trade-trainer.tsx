@@ -2,8 +2,8 @@
 
 import React, { useReducer, useCallback, useMemo, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { generateWeeklyData, parseStockData } from '@/lib/data-helpers';
-import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry } from '@/types';
+import { generateWeeklyData, parseStockData, calculateRSI, calculateMACD } from '@/lib/data-helpers';
+import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry, RSIConfig, MACDConfig } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
@@ -19,6 +19,8 @@ type Action =
   | { type: 'TRADE'; payload: 'long' | 'short' }
   | { type: 'CLOSE_PARTIAL_POSITION'; payload: { type: 'long' | 'short', amount: number } }
   | { type: 'TOGGLE_MA'; payload: string }
+  | { type: 'TOGGLE_RSI' }
+  | { type: 'TOGGLE_MACD' }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'SET_CANDLE_COLOR'; payload: { target: 'upColor' | 'downColor'; color: string } };
@@ -30,6 +32,9 @@ const initialMAConfigs: Record<string, MAConfig> = {
   '50': { period: 50, color: '#9C27B0', visible: true },
   '100': { period: 100, color: '#FF9800', visible: true },
 };
+
+const initialRsiConfig: RSIConfig = { visible: false, period: 14 };
+const initialMacdConfig: MACDConfig = { visible: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 };
 
 type AppStateWithLocal = AppState & {
   unrealizedPL: number,
@@ -48,6 +53,8 @@ const initialState: AppStateWithLocal = {
   realizedPL: 0,
   unrealizedPL: 0,
   maConfigs: initialMAConfigs,
+  rsiConfig: initialRsiConfig,
+  macdConfig: initialMacdConfig,
   showWeeklyChart: false,
   upColor: '#ef5350',
   downColor: '#26a69a',
@@ -60,6 +67,8 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
       return {
         ...initialState, // Reset everything except UI settings
         maConfigs: state.maConfigs,
+        rsiConfig: state.rsiConfig,
+        macdConfig: state.macdConfig,
         showWeeklyChart: state.showWeeklyChart,
         upColor: state.upColor,
         downColor: state.downColor,
@@ -205,7 +214,7 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
             unrealizedPL: newUnrealizedPL,
         };
     }
-    case 'TOGGLE_MA':
+    case 'TOGGLE_MA': {
       const period = action.payload;
       return {
         ...state,
@@ -214,6 +223,19 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
           [period]: { ...state.maConfigs[period], visible: !state.maConfigs[period].visible },
         },
       };
+    }
+    case 'TOGGLE_RSI': {
+      return {
+        ...state,
+        rsiConfig: { ...state.rsiConfig, visible: !state.rsiConfig.visible },
+      };
+    }
+    case 'TOGGLE_MACD': {
+        return {
+          ...state,
+          macdConfig: { ...state.macdConfig, visible: !state.macdConfig.visible },
+        };
+    }
     case 'TOGGLE_WEEKLY_CHART':
       return { ...state, showWeeklyChart: !state.showWeeklyChart };
     case 'SET_CANDLE_COLOR':
@@ -279,13 +301,20 @@ export default function ChartTradeTrainer() {
       return state.chartData;
   }, [state.isReplay, state.replayIndex, state.chartData]);
   
+  const rsiData = useMemo(() => {
+    if (!state.rsiConfig.visible) return [];
+    return calculateRSI(state.chartData, state.rsiConfig.period);
+  }, [state.chartData, state.rsiConfig.visible, state.rsiConfig.period]);
+
+  const macdData = useMemo(() => {
+    if (!state.macdConfig.visible) return [];
+    return calculateMACD(state.chartData, state.macdConfig.fastPeriod, state.macdConfig.slowPeriod, state.macdConfig.signalPeriod);
+  }, [state.chartData, state.macdConfig.visible, state.macdConfig.fastPeriod, state.macdConfig.slowPeriod, state.macdConfig.signalPeriod]);
+
   const allEntries = useMemo(() => state.positions.flatMap(p => 
       p.entries.map(e => ({
-          id: e.id,
+          ...e,
           type: p.type,
-          entryPrice: e.price,
-          size: e.size,
-          entryDate: e.date,
       }))
   ), [state.positions]);
 
@@ -310,6 +339,10 @@ export default function ChartTradeTrainer() {
                     onCandleColorChange={handleSetCandleColor}
                     maConfigs={state.maConfigs}
                     onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
+                    rsiConfig={state.rsiConfig}
+                    onRsiToggle={() => dispatch({ type: 'TOGGLE_RSI' })}
+                    macdConfig={state.macdConfig}
+                    onMacdToggle={() => dispatch({ type: 'TOGGLE_MACD' })}
                   />
                 </div>
             </SheetContent>
@@ -371,6 +404,8 @@ export default function ChartTradeTrainer() {
                 positions={allEntries}
                 tradeHistory={state.tradeHistory}
                 maConfigs={state.maConfigs}
+                rsiData={rsiData}
+                macdData={macdData}
                 showWeeklyChart={state.showWeeklyChart}
                 onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
                 replayIndex={state.replayIndex}

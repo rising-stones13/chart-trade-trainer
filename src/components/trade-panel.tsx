@@ -12,6 +12,7 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Separator } from './ui/separator';
 import React from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 interface TradePanelProps {
   fileLoaded: boolean;
@@ -39,6 +40,7 @@ export function TradePanel({
   onDateChange,
 }: TradePanelProps) {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const { userData } = useAuth();
   
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ja-JP', { style: 'currency', currency: 'JPY', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
@@ -87,7 +89,7 @@ export function TradePanel({
           <Button onClick={() => onTrade('long')} disabled={!isReplay} className="bg-blue-600 hover:bg-blue-700 text-white h-8 px-2">
             <ArrowUp className="mr-1 h-4 w-4" /> 買い
           </Button>
-          <Button onClick={() => onTrade('short')} disabled={!isReplay} className="bg-red-600 hover:bg-red-700 text-white h-8 px-2">
+          <Button onClick={() => onTrade('short')} disabled={!isReplay || !userData?.isPremium} className="bg-red-600 hover:bg-red-700 text-white h-8 px-2">
             <ArrowDown className="mr-1 h-4 w-4" /> 空売り
           </Button>
         </div>
