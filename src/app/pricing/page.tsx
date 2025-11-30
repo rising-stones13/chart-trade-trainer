@@ -3,8 +3,54 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
 export default function PricingPage() {
+  const router = useRouter();
+  const { user, userData } = useAuth();
+  const { toast } = useToast();
+
+  const handlePremiumRegistration = async () => {
+    if (!user) {
+      toast({
+        title: "ログインしてください",
+        description: "プレミアム機能を利用するにはログインが必要です。",
+        variant: "destructive",
+      });
+      router.push('/login');
+      return;
+    }
+
+    if (userData?.isPremium) {
+      toast({
+        title: "すでにプレミアムユーザーです",
+        description: "すでにお客様のアカウントはプレミアムに登録されています。",
+      });
+      return;
+    }
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await setDoc(userDocRef, { isPremium: true }, { merge: true });
+      toast({
+        title: "プレミアム登録が完了しました",
+        description: "プレミアム機能が利用可能になりました。",
+      });
+      router.push('/'); // Navigate to home or dashboard after successful registration
+    } catch (error) {
+      console.error("Error during premium registration:", error);
+      toast({
+        title: "プレミアム登録に失敗しました",
+        description: "エラーが発生しました。もう一度お試しください。",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
       <div className="text-center mb-8">
@@ -44,7 +90,7 @@ export default function PricingPage() {
             </ul>
           </CardContent>
           <CardFooter>
-            <Button className="w-full">
+            <Button className="w-full" onClick={handlePremiumRegistration}>
               プレミアムに登録
             </Button>
           </CardFooter>

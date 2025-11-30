@@ -35,8 +35,10 @@ export default function Home() {
                   <Link href="/pricing">プレミアムにアップグレード</Link>
                 </Button>
               )}
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/settings">設定</Link>
+              </Button>
               <p>{user.email}</p>
-              <Button onClick={logOut} variant="outline">ログアウト</Button>
             </div>
           </header>
           <ChartTradeTrainer />

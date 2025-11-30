@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const { logIn, sendPasswordReset } = useAuth();
+  const { logIn, sendPasswordReset, signInWithGoogle } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -24,6 +24,16 @@ export default function LoginPage() {
     setError(null);
     try {
       await logIn(email, password);
+      router.push('/');
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    try {
+      await signInWithGoogle();
       router.push('/');
     } catch (err: any) {
       setError(err.message);
@@ -91,6 +101,25 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               {isResetting ? 'リセットメールを送信' : 'ログイン'}
             </Button>
+            
+            {!isResetting && (
+              <>
+                <div className="relative w-full my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      または
+                    </span>
+                  </div>
+                </div>
+                <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn}>
+                  Googleでログイン
+                </Button>
+              </>
+            )}
+
             <div className="mt-4 text-xs text-center w-full">
               {isResetting ? (
                 <button type="button" onClick={() => { setIsResetting(false); setError(null); }} className="underline">
