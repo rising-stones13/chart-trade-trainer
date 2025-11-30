@@ -171,8 +171,6 @@ function WeeklyChart({ data, upColor, downColor }: { data: CandleData[], upColor
 
     const chartOptions = {
         ...getChartOptions(upColor, downColor),
-        width: chartContainerRef.current.clientWidth,
-        height: chartContainerRef.current.clientHeight,
     };
     const chart = createChart(chartContainerRef.current, chartOptions as TimeChartOptions);
     
@@ -216,8 +214,6 @@ export function StockChart({
     
     const chart = createChart(chartContainerRef.current, {
       ...getChartOptions(upColor, downColor),
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight
     } as TimeChartOptions);
     chartRef.current = chart;
     
