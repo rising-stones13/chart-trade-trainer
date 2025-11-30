@@ -37,9 +37,6 @@ export async function POST(req: Request) {
     // Stripeサブスクリプションのキャンセル
     const canceledSubscription = await stripe.subscriptions.cancel(stripeSubscriptionId);
 
-    // FirestoreのisPremiumフラグをfalseに更新
-    await userDocRef.set({ isPremium: false, stripeSubscriptionId: null, stripeCustomerId: null, currentPeriodEnd: null }, { merge: true }); // Admin SDKの書き方に変更
-
     return NextResponse.json({ success: true, canceledSubscription });
   } catch (error: any) {
     console.error('Error canceling subscription:', error);

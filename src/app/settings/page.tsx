@@ -34,6 +34,16 @@ export default function SettingsPage() {
   }, [user, loading, router]);
 
   const handleDeleteAccount = async () => {
+    if (userData?.isPremium) {
+      toast({
+        variant: "destructive",
+        title: "アカウントを削除できません",
+        description: "プレミアムプランを解除してからアカウントを削除してください。",
+      });
+      setIsDeleteDialogOpen(false); // AlertDialogを閉じる
+      return;
+    }
+
     try {
       await deleteAccount();
       toast({
@@ -101,7 +111,7 @@ export default function SettingsPage() {
         });
         // ユーザーデータの再取得やステートの更新
         // ここでは一旦ページをリロードして最新のデータを取得することを想定
-        router.reload(); 
+        router.refresh(); 
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "サブスクリプションの解除に失敗しました。");

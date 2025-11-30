@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const userId = session.metadata?.userId;
         const customerId = session.customer;
+        const subscriptionIdFromSession = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
 
         if (!userId) {
           console.error('User ID not found in checkout session metadata');
@@ -49,12 +50,69 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        // Grant premium access
         const userRef = db.collection('users').doc(userId);
         console.log(`Attempting to grant premium access for user ${userId}...`);
-        // 顧客IDも保存して、将来のサブスクリプション管理に利用します
-        await userRef.update({ isPremium: true, stripeCustomerId: customerId });
+
+        const updateData: { isPremium: boolean; stripeCustomerId: string; stripeSubscriptionId?: string; currentPeriodEnd?: number | null } = {
+          isPremium: true,
+          stripeCustomerId: customerId,
+        };
+
+        if (subscriptionIdFromSession) {
+          // Stripe API から Subscription オブジェクトの全詳細を取得
+          try {
+            const subscription = await stripe.subscriptions.retrieve(subscriptionIdFromSession);
+            updateData.stripeSubscriptionId = subscription.id;
+            updateData.currentPeriodEnd = subscription.current_period_end;
+          } catch (retrieveError) {
+            console.error('Error retrieving subscription details:', retrieveError);
+            // サブスクリプション詳細の取得に失敗しても処理は続行
+          }
+        }
+        
+        await userRef.update(updateData);
         console.log(`Successfully granted premium access to user ${userId}`);
+        break;
+      }
+
+      case 'customer.subscription.created': {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = subscription.customer as string;
+
+        const MAX_RETRIES = 5;
+        const RETRY_DELAY_MS = 2000; // 2秒
+
+        let userFound = false;
+        for (let i = 0; i < MAX_RETRIES; i++) {
+          const usersRef = db.collection('users');
+          const snapshot = await usersRef.where('stripeCustomerId', '==', customerId).get();
+
+          if (!snapshot.empty) {
+            for (const doc of snapshot.docs) {
+              const updateData: { stripeSubscriptionId: string; currentPeriodEnd?: number | null } = {
+                stripeSubscriptionId: subscription.id,
+              };
+
+              if (subscription.current_period_end !== undefined && subscription.current_period_end !== null) {
+                updateData.currentPeriodEnd = subscription.current_period_end;
+              } else {
+                updateData.currentPeriodEnd = null; 
+              }
+              
+              await doc.ref.update(updateData);
+              console.log(`Updated subscription ID for user ${doc.id}: ${subscription.id}`);
+            }
+            userFound = true;
+            break; // ユーザーが見つかり、更新が完了したらループを抜ける
+          }
+
+          console.log(`User with Stripe customer ID ${customerId} not found (retry ${i + 1}/${MAX_RETRIES}). Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+
+        if (!userFound) {
+          console.error(`Failed to find user with Stripe customer ID ${customerId} after ${MAX_RETRIES} retries for subscription creation.`);
+        }
         break;
       }
 
@@ -74,7 +132,7 @@ export async function POST(req: NextRequest) {
 
         // Revoke premium access for all found users (usually just one)
         for (const doc of snapshot.docs) {
-          await doc.ref.update({ isPremium: false });
+          await doc.ref.update({ isPremium: false, stripeSubscriptionId: null, currentPeriodEnd: null });
           console.log(`Revoked premium access for user ${doc.id}`);
         }
         break;
