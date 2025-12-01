@@ -64,6 +64,10 @@ export interface MACDConfig {
   signalPeriod: number;
 }
 
+export interface VolumeConfig {
+  visible: boolean;
+}
+
 export interface AppState {
   chartData: CandleData[];
   weeklyData: CandleData[];
@@ -79,5 +83,6 @@ export interface AppState {
   showWeeklyChart: boolean;
   upColor: string;
   downColor: string;
+  volumeConfig: VolumeConfig;
 }
 

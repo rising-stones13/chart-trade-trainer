@@ -3,7 +3,7 @@
 import React, { useReducer, useCallback, useMemo, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { generateWeeklyData, parseStockData, calculateRSI, calculateMACD } from '@/lib/data-helpers';
-import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry, RSIConfig, MACDConfig } from '@/types';
+import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry, RSIConfig, MACDConfig, VolumeConfig } from '@/types';
 import { StockChart } from './stock-chart';
 import { ControlPanel } from './control-panel';
 import { TradePanel } from './trade-panel';
@@ -21,6 +21,7 @@ type Action =
   | { type: 'TOGGLE_MA'; payload: string }
   | { type: 'TOGGLE_RSI' }
   | { type: 'TOGGLE_MACD' }
+  | { type: 'TOGGLE_VOLUME' }
   | { type: 'TOGGLE_WEEKLY_CHART' }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'SET_CANDLE_COLOR'; payload: { target: 'upColor' | 'downColor'; color: string } };
@@ -35,6 +36,7 @@ const initialMAConfigs: Record<string, MAConfig> = {
 
 const initialRsiConfig: RSIConfig = { visible: false, period: 14 };
 const initialMacdConfig: MACDConfig = { visible: false, fastPeriod: 12, slowPeriod: 26, signalPeriod: 9 };
+const initialVolumeConfig: VolumeConfig = { visible: true };
 
 type AppStateWithLocal = AppState & {
   unrealizedPL: number,
@@ -55,6 +57,7 @@ const initialState: AppStateWithLocal = {
   maConfigs: initialMAConfigs,
   rsiConfig: initialRsiConfig,
   macdConfig: initialMacdConfig,
+  volumeConfig: initialVolumeConfig,
   showWeeklyChart: false,
   upColor: '#ef5350',
   downColor: '#26a69a',
@@ -69,6 +72,7 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
         maConfigs: state.maConfigs,
         rsiConfig: state.rsiConfig,
         macdConfig: state.macdConfig,
+        volumeConfig: state.volumeConfig,
         showWeeklyChart: state.showWeeklyChart,
         upColor: state.upColor,
         downColor: state.downColor,
@@ -236,6 +240,12 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
           macdConfig: { ...state.macdConfig, visible: !state.macdConfig.visible },
         };
     }
+    case 'TOGGLE_VOLUME': {
+        return {
+            ...state,
+            volumeConfig: { ...state.volumeConfig, visible: !state.volumeConfig.visible },
+        };
+    }
     case 'TOGGLE_WEEKLY_CHART':
       return { ...state, showWeeklyChart: !state.showWeeklyChart };
     case 'SET_CANDLE_COLOR':
@@ -343,6 +353,8 @@ export default function ChartTradeTrainer() {
                     onRsiToggle={() => dispatch({ type: 'TOGGLE_RSI' })}
                     macdConfig={state.macdConfig}
                     onMacdToggle={() => dispatch({ type: 'TOGGLE_MACD' })}
+                    volumeConfig={state.volumeConfig}
+                    onVolumeToggle={() => dispatch({ type: 'TOGGLE_VOLUME' })}
                   />
                 </div>
             </SheetContent>
@@ -411,6 +423,7 @@ export default function ChartTradeTrainer() {
                 replayIndex={state.replayIndex}
                 upColor={state.upColor}
                 downColor={state.downColor}
+                volumeConfig={state.volumeConfig}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground">

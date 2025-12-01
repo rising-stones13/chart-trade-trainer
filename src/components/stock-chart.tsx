@@ -19,7 +19,7 @@ import {
   Time
 } from 'lightweight-charts';
 import { calculateMA } from '@/lib/data-helpers';
-import type { CandleData, Trade, MAConfig, MacdData, LineData, PositionEntry } from '@/types';
+import type { CandleData, Trade, MAConfig, MacdData, LineData, PositionEntry, VolumeConfig } from '@/types';
 import { DraggableWindow } from './draggable-window';
 
 interface StockChartProps {
@@ -35,6 +35,7 @@ interface StockChartProps {
   onCloseWeeklyChart: () => void;
   upColor: string;
   downColor: string;
+  volumeConfig: VolumeConfig;
 }
 
 const getChartOptions = (upColor: string, downColor:string) => ({
@@ -202,6 +203,7 @@ export function StockChart({
   onCloseWeeklyChart,
   upColor,
   downColor,
+  volumeConfig,
 }: StockChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -278,6 +280,11 @@ export function StockChart({
     const volumeData = currentData.map(d => ({ time: d.time, value: d.volume, color: d.close >= d.open ? 'rgba(8, 153, 129, 0.5)' : 'rgba(239, 83, 80, 0.5)' }));
     seriesRef.current.volume.setData(volumeData as HistogramData[]);
 
+    if (seriesRef.current.volume && chartRef.current) {
+      seriesRef.current.volume.applyOptions({ visible: volumeConfig.visible });
+      chartRef.current.priceScale('volume').applyOptions({ visible: volumeConfig.visible });
+    }
+
     Object.values(maConfigs).forEach(config => {
         const period = config.period.toString();
         const series = seriesRef.current[`ma${period}`];
@@ -308,7 +315,7 @@ export function StockChart({
         chartRef.current.priceScale('macd').applyOptions({ visible: isVisible });
     }
 
-  }, [chartData, replayIndex, maConfigs, rsiData, macdData, upColor, downColor]);
+  }, [chartData, replayIndex, maConfigs, rsiData, macdData, upColor, downColor, volumeConfig]);
   
   useEffect(() => {
     if (!chartRef.current) return;

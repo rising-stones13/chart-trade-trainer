@@ -3,9 +3,9 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Sigma, Palette, AreaChart, BarChart } from 'lucide-react';
+import { Sigma, Palette, AreaChart, BarChart, BarChart4 } from 'lucide-react';
 import { SidebarGroup, SidebarGroupContent } from './ui/sidebar';
-import type { MAConfig, RSIConfig, MACDConfig } from '@/types';
+import type { MAConfig, RSIConfig, MACDConfig, VolumeConfig } from '@/types';
 import { Input } from './ui/input';
 import { Separator } from './ui/separator';
 import { useAuth } from '@/context/AuthContext';
@@ -22,6 +22,8 @@ interface ControlPanelProps {
   onRsiToggle: () => void;
   macdConfig: MACDConfig;
   onMacdToggle: () => void;
+  volumeConfig: VolumeConfig;
+  onVolumeToggle: () => void;
 }
 
 export function ControlPanel({
@@ -35,6 +37,8 @@ export function ControlPanel({
   onRsiToggle,
   macdConfig,
   onMacdToggle,
+  volumeConfig,
+  onVolumeToggle,
 }: ControlPanelProps) {
   const { userData } = useAuth();
   const isPremium = userData?.isPremium;
@@ -108,6 +112,18 @@ export function ControlPanel({
               />
             </div>
           ))}
+          <Separator />
+          <div className="flex items-center justify-between">
+            <Label htmlFor="volume-toggle" className="text-base">
+              <BarChart4 className="inline-block mr-2 h-4 w-4" />
+              出来高
+            </Label>
+            <Switch
+              id="volume-toggle"
+              checked={volumeConfig.visible}
+              onCheckedChange={onVolumeToggle}
+            />
+          </div>
           <Separator />
           <PremiumFeature featureName="RSI">
             <div className="flex items-center justify-between">
