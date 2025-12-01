@@ -180,8 +180,6 @@ function WeeklyChart({ data, upColor, downColor }: { data: CandleData[], upColor
     const handleResize = () => chart.applyOptions({ width: chartContainerRef.current!.clientWidth, height: chartContainerRef.current!.clientHeight });
     window.addEventListener('resize', handleResize);
 
-    chart.timeScale().fitContent();
-
     return () => {
       window.removeEventListener('resize', handleResize);
       chart.remove();
