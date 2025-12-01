@@ -319,7 +319,7 @@ export default function ChartTradeTrainer() {
   ), [state.positions]);
 
   return (
-    <div className="flex flex-col h-screen font-body bg-background text-foreground">
+    <div className="flex flex-col h-full font-body bg-background text-foreground overflow-hidden">
       <header className="p-2 border-b border-border flex items-center gap-2 flex-shrink-0">
           <Sheet open={isControlPanelOpen} onOpenChange={setIsControlPanelOpen}>
             <SheetTrigger asChild>

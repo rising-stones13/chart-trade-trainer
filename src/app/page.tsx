@@ -20,8 +20,8 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       {user ? (
-        <div>
-          <header className="flex justify-between items-center p-4 border-b">
+        <div className="flex flex-col h-screen">
+          <header className="flex justify-between items-center p-4 border-b flex-shrink-0">
             <div>
               {userData?.isPremium ? (
                 <Badge variant="premium">プレミアムプラン</Badge>
@@ -41,7 +41,9 @@ export default function Home() {
               <p>{user.email}</p>
             </div>
           </header>
-          <ChartTradeTrainer />
+          <div className="flex-1 min-h-0">
+            <ChartTradeTrainer />
+          </div>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-screen">
