@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const { logIn, sendPasswordReset, signInWithGoogle } = useAuth();
+  const { logIn, sendPasswordReset, logInWithGoogle } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,16 +28,26 @@ export default function LoginPage() {
       router.push('/');
     } catch (err: any) {
       setError(err.message);
+      toast({
+        title: 'ログインエラー',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      await signInWithGoogle();
+      await logInWithGoogle();
       router.push('/');
     } catch (err: any) {
       setError(err.message);
+      toast({
+        title: 'ログインエラー',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 

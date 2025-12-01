@@ -9,13 +9,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/google-icon';
+import { useToast } from '@/hooks/use-toast'; // Import useToast
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signUpWithGoogle } = useAuth(); // Changed signInWithGoogle to signUpWithGoogle
   const router = useRouter();
+  const { toast } = useToast(); // Initialize toast
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,16 +27,26 @@ export default function SignupPage() {
       router.push('/');
     } catch (err: any) {
       setError(err.message);
+      toast({
+        title: '新規登録エラー',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 
   const handleGoogleSignIn = async () => {
     setError(null);
     try {
-      await signInWithGoogle();
+      await signUpWithGoogle(); // Call the new signUpWithGoogle
       router.push('/');
     } catch (err: any) {
       setError(err.message);
+      toast({
+        title: '新規登録エラー',
+        description: err.message,
+        variant: 'destructive',
+      });
     }
   };
 
