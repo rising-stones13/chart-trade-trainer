@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GoogleIcon } from '@/components/icons/google-icon';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
@@ -115,6 +116,7 @@ export default function LoginPage() {
                   </div>
                 </div>
                 <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn}>
+                  <GoogleIcon className="mr-2 h-4 w-4" />
                   Googleでログイン
                 </Button>
               </>

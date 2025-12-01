@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GoogleIcon } from '@/components/icons/google-icon';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -86,6 +87,7 @@ export default function SignupPage() {
               </div>
             </div>
             <Button variant="outline" type="button" className="w-full" onClick={handleGoogleSignIn}>
+              <GoogleIcon className="mr-2 h-4 w-4" />
               Googleで新規登録
             </Button>
             <p className="mt-4 text-xs text-center text-muted-foreground">
