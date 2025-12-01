@@ -74,8 +74,8 @@ export default function PricingPage() {
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
               <li>ローカルファイルからのチャート読み込み</li>
-              <li>基本的な取引機能</li>
-              <li>移動平均線の表示</li>
+              <li>ローソク足表示、出来高表示</li>
+              <li>基本的なデモ取引機能（買い／売り）</li>
             </ul>
           </CardContent>
           <CardFooter>
@@ -91,9 +91,9 @@ export default function PricingPage() {
           </CardHeader>
           <CardContent>
             <ul className="list-disc list-inside space-y-2">
-              <li>リアルタイム・API経由のデータ取得</li>
+              <li>移動平均線の表示（5MA, 10MA, 20MA, 50MA, 100MA ）</li>
               <li>高度なテクニカル指標（RSI, MACDなど）</li>
-              <li>高度な取引機能（空売りなど）</li>
+              <li>高度なデモ取引機能（空売り／買戻しなど）</li>
               <li>取引履歴の保存と分析</li>
             </ul>
           </CardContent>
