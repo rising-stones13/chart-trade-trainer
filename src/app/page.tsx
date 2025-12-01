@@ -21,7 +21,7 @@ export default function Home() {
     <main className="min-h-screen bg-background text-foreground">
       {user ? (
         <div className="flex flex-col h-screen">
-          <header className="flex justify-between items-center p-4 border-b flex-shrink-0">
+          <header className="flex justify-between items-center p-4 border-b flex-shrink-0 h-16">
             <div>
               {userData?.isPremium ? (
                 <Badge variant="premium">プレミアムプラン</Badge>
@@ -29,7 +29,7 @@ export default function Home() {
                 <Badge variant="secondary">フリープラン</Badge>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-nowrap min-w-0">
               {!userData?.isPremium && (
                 <Button asChild size="sm">
                   <Link href="/pricing">プレミアムにアップグレード</Link>
@@ -38,7 +38,7 @@ export default function Home() {
               <Button asChild variant="ghost" size="sm">
                 <Link href="/settings">設定</Link>
               </Button>
-              <p>{user.email}</p>
+              <p className="truncate text-sm text-muted-foreground">{user.email}</p>
             </div>
           </header>
           <div className="flex-1 min-h-0">
