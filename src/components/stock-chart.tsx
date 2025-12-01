@@ -314,13 +314,14 @@ export function StockChart({
   
   useEffect(() => {
     if (!chartRef.current) return;
-    if (replayIndex === null) {
-        chartRef.current.timeScale().fitContent();
-    } else if (replayIndex > 0) {
+    
+    // Only scroll to the end when in replay mode
+    if (replayIndex !== null) {
         const dataLength = chartData.length;
         const to = dataLength > 0 ? dataLength - 1 : 0;
         chartRef.current.timeScale().scrollToPosition(to, false);
     }
+    // When not in replay mode (replayIndex is null), do nothing and let the chart use its default view.
   }, [replayIndex, chartData.length]);
 
   const timeToNumber = (time: Time): number => {
