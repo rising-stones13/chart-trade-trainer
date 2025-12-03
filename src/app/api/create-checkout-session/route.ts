@@ -1,12 +1,24 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { getSecrets } from '../../../lib/secrets';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2023-10-16',
-});
+// Stripeの初期化をここで行わない
 
 export async function POST(req: Request) {
   try {
+    // 1. まずSecret Managerから秘密情報を取得
+    const secrets = await getSecrets();
+    const stripeSecretKey = secrets['STRIPE_SECRET_KEY'];
+
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key not found in Secret Manager.');
+    }
+
+    // 2. 取得したキーを使ってStripeを初期化
+    const stripe = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+    });
+
     const { userId, userEmail } = await req.json();
 
     if (!userId || !userEmail) {
@@ -19,14 +31,14 @@ export async function POST(req: Request) {
       line_items: [
         {
           price_data: {
-            currency: 'jpy', // または'jpy'など
+            currency: 'jpy',
             product_data: {
               name: 'プレミアムプラン',
               description: 'すべての機能が利用可能になります。',
             },
-            unit_amount: 980, // 例: 980円
+            unit_amount: 980,
             recurring: {
-              interval: 'month', // 月額購読
+              interval: 'month',
             },
           },
           quantity: 1,
@@ -44,6 +56,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error: any) {
     console.error('Error creating checkout session:', error);
-    return new NextResponse(`Error: ${error.message}`, { status: 500 });
+    // エラーメッセージをより詳細に返す
+    return new NextResponse(`Error creating checkout session: ${error.message}`, { status: 500 });
   }
 }

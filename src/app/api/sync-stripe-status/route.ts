@@ -1,23 +1,28 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { db, auth } from '@/lib/firebase-admin';
-
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-if (!stripeSecretKey) {
-  throw new Error('STRIPE_SECRET_KEY is not set in environment variables.');
-}
-
-const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2024-06-20',
-});
+import { getFirebaseAdmin } from '@/lib/firebase-admin';
+import { getSecrets } from '@/lib/secrets';
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. 非同期でFirebase AdminとSecretsを初期化・取得
+    const { auth, db } = await getFirebaseAdmin();
+    const secrets = await getSecrets();
+    const stripeSecretKey = secrets['STRIPE_SECRET_KEY'];
+
+    if (!stripeSecretKey) {
+      throw new Error('Stripe secret key is not available from Secret Manager.');
+    }
+
+    // 2. このリクエストスコープ内でStripeを初期化
+    const stripe = new Stripe(stripeSecretKey, { apiVersion: '2024-06-20' });
+
     const authorization = req.headers.get('authorization');
     if (!authorization?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
+    
     const idToken = authorization.split('Bearer ')[1];
     const decodedToken = await auth.verifyIdToken(idToken);
     const userId = decodedToken.uid;
@@ -37,8 +42,6 @@ export async function POST(req: NextRequest) {
     const stripeCustomerId = userData?.stripeCustomerId;
 
     if (!stripeCustomerId) {
-      // If there's no customer ID, they can't be premium.
-      // If they are marked as premium, correct it.
       if (userData?.isPremium) {
         await userDocRef.update({ isPremium: false, stripeSubscriptionId: null, currentPeriodEnd: null });
         console.log(`Corrected user ${userId}: Marked as not premium because they have no Stripe customer ID.`);
@@ -46,45 +49,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'User does not have a Stripe customer ID.' });
     }
 
-    // List active subscriptions for the customer
+    // 3. 顧客のサブスクリプションをStripeから取得
     const subscriptions = await stripe.subscriptions.list({
       customer: stripeCustomerId,
-      status: 'all', // Get all subscriptions to find the latest one
-      limit: 1, // We only need the most recent one
+      status: 'all', // 'active'だけでなく、'canceled'なども含める
+      limit: 1, // 最新の1件で十分
     });
 
-    let hasActiveSubscription = false;
-    let currentPeriodEnd = null;
-    let activeSubscriptionId = null;
-
-    if (subscriptions.data.length > 0) {
-      const latestSubscription = subscriptions.data[0];
-      if (latestSubscription.status === 'active' || latestSubscription.status === 'trialing') {
-        hasActiveSubscription = true;
-        currentPeriodEnd = latestSubscription.current_period_end;
-        activeSubscriptionId = latestSubscription.id;
+    if (subscriptions.data.length === 0) {
+      if (userData?.isPremium) {
+        await userDocRef.update({ isPremium: false, stripeSubscriptionId: null, currentPeriodEnd: null });
+        console.log(`Corrected user ${userId}: Marked as not premium because they have no subscriptions in Stripe.`);
       }
+      return NextResponse.json({ message: 'User has a Stripe customer ID but no subscriptions.' });
     }
 
-    // Compare with Firestore and update if necessary
-    if (userData?.isPremium !== hasActiveSubscription) {
+    const latestSubscription = subscriptions.data[0];
+    const isPremium = ['active', 'trialing'].includes(latestSubscription.status);
+    const currentPeriodEnd = latestSubscription.current_period_end;
+    const subscriptionId = latestSubscription.id;
+    
+    // 4. Firestoreのデータと比較・更新
+    if (
+      userData?.isPremium !== isPremium ||
+      userData?.stripeSubscriptionId !== subscriptionId ||
+      userData?.currentPeriodEnd !== currentPeriodEnd
+    ) {
       await userDocRef.update({
-        isPremium: hasActiveSubscription,
-        stripeSubscriptionId: activeSubscriptionId,
+        isPremium,
+        stripeSubscriptionId: subscriptionId,
         currentPeriodEnd: currentPeriodEnd,
       });
-      console.log(`Corrected user ${userId}: Set isPremium to ${hasActiveSubscription}`);
-    } else {
-      console.log(`User ${userId} premium status is already up-to-date.`);
+      console.log(`Updated premium status for user ${userId} to ${isPremium}.`);
+      return NextResponse.json({ 
+        message: 'User status was outdated and has been updated.',
+        updated: true,
+        newStatus: { isPremium, subscriptionId, currentPeriodEnd } 
+      });
     }
 
-    return NextResponse.json({ message: 'Stripe status synced successfully.' });
+    return NextResponse.json({ message: 'User status is already up-to-date.' });
 
   } catch (error: any) {
-    console.error('Error in sync-stripe-status:', error);
-    if (error.code === 'auth/id-token-expired') {
-        return NextResponse.json({ error: 'Token expired' }, { status: 401 });
-    }
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Detailed Error in /api/sync-stripe-status:', error);
+    // For debugging: return a more detailed error message
+    return NextResponse.json({ 
+        error: 'An internal error occurred. See details.', 
+        message: error.message,
+        stack: error.stack, // IMPORTANT: Send stack trace for debugging
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)) // Send the full error object
+    }, { status: 500 });
   }
 }

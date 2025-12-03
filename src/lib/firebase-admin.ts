@@ -1,40 +1,50 @@
-import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, App, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
-import { cert } from 'firebase-admin/app'; // certを明示的にインポート
+import { getSecrets } from './secrets';
 
-let app: App;
+// 初期化処理をPromiseとして保持するための変数
+let adminAppPromise: Promise<App> | null = null;
 
-if (!getApps().length) {
-  const firebaseProjectId = process.env.FIREBASE_PROJECT_ID;
-  const firebaseClientEmail = process.env.FIREBASE_CLIENT_EMAIL;  
-  const firebasePrivateKey = process.env.FIREBASE_PRIVATE_KEY 
-    ? process.env.FIREBASE_PRIVATE_KEY.includes('\\n') ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n') : process.env.FIREBASE_PRIVATE_KEY
-    : undefined;
-
-  if (!firebaseProjectId) {
-    throw new Error('FIREBASE_PROJECT_ID is not defined in environment variables.');
-  }
-  if (!firebaseClientEmail) {
-    throw new Error('FIREBASE_CLIENT_EMAIL is not defined in environment variables.');
-  }
-  if (!firebasePrivateKey) {
-    throw new Error('FIREBASE_PRIVATE_KEY is not defined in environment variables.');
+const getAppInstance = async (): Promise<App> => {
+  // 既に初期化が始まっていれば、既存のインスタンスを返す
+  if (getApps().length > 0) {
+    return getApp();
   }
 
-  // Firebase Admin SDK の初期化
-  app = initializeApp({
-    credential: cert({ // certを直接使用
+  // Secret Managerから機密情報を取得
+  const secrets = await getSecrets();
+  
+  const firebaseProjectId = secrets.FIREBASE_PROJECT_ID;
+  const firebaseClientEmail = secrets.FIREBASE_CLIENT_EMAIL;
+  const firebasePrivateKey = secrets.FIREBASE_PRIVATE_KEY;
+
+  if (!firebaseProjectId || !firebaseClientEmail || !firebasePrivateKey) {
+      throw new Error('Firebase Admin SDKの認証情報がSecret Managerにありません。');
+  }
+  
+  // アプリケーションを初期化
+  return initializeApp({
+    credential: cert({
       projectId: firebaseProjectId,
       clientEmail: firebaseClientEmail,
-      privateKey: firebasePrivateKey,
+      privateKey: firebasePrivateKey.replace(/\\n/g, '\n'), 
     }),
   });
-} else {
-  app = getApp(); // 既に初期化されている場合は既存のアプリを取得
-}
+};
 
-const db: Firestore = getFirestore(app);
-const auth: Auth = getAuth(app);
-
-export { db, auth };
+/**
+ * FirestoreとAuthのインスタンスを返す関数。
+ * 競合状態を防ぎ、常に単一のインスタンスを返す。
+ */
+export const getFirebaseAdmin = async (): Promise<{ db: Firestore; auth: Auth }> => {
+  if (!adminAppPromise) {
+    adminAppPromise = getAppInstance();
+  }
+  
+  const app = await adminAppPromise;
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  
+  return { db, auth };
+};

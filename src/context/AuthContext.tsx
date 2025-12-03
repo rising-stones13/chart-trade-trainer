@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   onAuthStateChanged, 
   User, 
@@ -10,12 +11,11 @@ import {
   sendPasswordResetEmail,
   UserCredential,
   GoogleAuthProvider,
-  signInWithPopup,
-  deleteUser, // Add deleteUser
-  reauthenticateWithCredential // Add reauthenticateWithCredential
+  signInWithRedirect,
+  deleteUser
 } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase'; // Adjust the import path as necessary
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore'; // Add deleteDoc, onSnapshot
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 interface UserData {
     email: string | null;
@@ -30,233 +30,143 @@ interface AuthContextType {
   logIn: (email: string, password: string) => Promise<UserCredential>;
   logOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
-    logIn: (email: string, password: string) => Promise<UserCredential>;
-    logOut: () => Promise<void>;
-    sendPasswordReset: (email: string) => Promise<void>;
-    logInWithGoogle: () => Promise<void>; // Updated from signInWithGoogle
-    signUpWithGoogle: () => Promise<void>; // New function for Google signup
-    deleteAccount: () => Promise<void>; // Add deleteAccount
+  logInWithGoogle: () => Promise<void>;
+  signUpWithGoogle: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  
-  const AuthContext = createContext<AuthContextType | undefined>(undefined);
-  
-  export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-      throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-  }
-  
-  interface AuthProviderProps {
-    children: ReactNode;
-  }
-  
-  export function AuthProvider({ children }: AuthProviderProps) {
-    const [user, setUser] = useState<User | null>(null);
-    const [userData, setUserData] = useState<UserData | null>(null);
-    const [loading, setLoading] = useState(true);
-  
-    useEffect(() => {
-      let unsubscribeFromUserData: (() => void) | undefined;
-  
-          const unsubscribeFromAuth = onAuthStateChanged(auth, async (user) => {
-  
-            setUser(user);
-  
-            if (user) {
-  
-              // Sync Stripe status in the background
-  
-              (async () => {
-  
-                try {
-  
-                  const token = await user.getIdToken();
-  
-                  await fetch('/api/sync-stripe-status', {
-  
-                    method: 'POST',
-  
-                    headers: {
-  
-                      'Authorization': `Bearer ${token}`,
-  
-                    },
-  
-                  });
-  
-                  console.log('AuthContext: Stripe status sync requested.');
-  
-                } catch (error) {
-  
-                  console.error('AuthContext: Error syncing Stripe status:', error);
-  
-                }
-  
-              })();
+  return context;
+}
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Step 1: Handle authentication state changes
+  useEffect(() => {
+    const unsubscribeFromAuth = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      setLoading(false);
+    });
+    return () => unsubscribeFromAuth();
+  }, []);
+
+  // Step 2: Handle data fetching, document creation, and redirection based on user state
+  useEffect(() => {
+    let unsubscribeFromUserData: (() => void) | undefined;
+
+    if (user) {
+      // Redirect away from login page if user is now logged in
+      if (pathname === '/login') {
+        router.push('/');
+      }
       
-              const userDocRef = doc(db, 'users', user.uid);
-  
-              // Subscribe to user data changes
-  
-              unsubscribeFromUserData = onSnapshot(userDocRef, (doc) => {
-  
-                        if (doc.exists()) {
-  
-                          const data = doc.data() as UserData;
-  
-                          setUserData(data);
-  
-                          console.log('AuthContext: User data updated, isPremium:', data.isPremium); // Add this log
-  
-                        } else {
-  
-                          setUserData(null);
-  
-                          console.log('AuthContext: User document does not exist.'); // Add this log
-  
-                        }
-  
-                      });      
-  
-          } else {
-          // If user logs out, clear user data and unsubscribe from user data changes
-          if (unsubscribeFromUserData) {
-            unsubscribeFromUserData();
-            unsubscribeFromUserData = undefined; // Reset for next login
-          }
-          setUserData(null);
-        }
-        setLoading(false);
-      });
-  
-      return () => {
-        // Unsubscribe from auth state changes
-        unsubscribeFromAuth();
-        // Unsubscribe from user data changes if it was active
-        if (unsubscribeFromUserData) {
-          unsubscribeFromUserData();
-        }
-      };
-    }, []);
-  
-    const signUp = async (email: string, password: string) => {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
       const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
-        email: user.email,
-        isPremium: false,
-      });
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        setUserData(userDoc.data() as UserData);
-      }
-      return userCredential;
-    };
-  
-    const logInWithGoogle = async () => {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      try {
-        const userCredential = await signInWithPopup(auth, provider);
-        const user = userCredential.user;
-  
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-  
-        if (!userDoc.exists()) {
-          // If user does not exist in Firestore, throw an error
-          await signOut(auth); // Log out the user from Firebase Auth as they are not registered in our DB
-          throw new Error("User not registered. Please sign up first.");
+
+      unsubscribeFromUserData = onSnapshot(userDocRef, async (docSnap) => {
+        if (docSnap.exists()) {
+          setUserData(docSnap.data() as UserData);
         } else {
-          setUserData(userDoc.data() as UserData);
-        }
-      } catch (error) {
-        console.error("Error during Google sign-in", error);
-        throw error;
-      }
-    };
-  
-    const signUpWithGoogle = async () => {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      try {
-        const userCredential = await signInWithPopup(auth, provider);
-        const user = userCredential.user;
-  
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-  
-        if (userDoc.exists()) {
-          // If user already exists in Firestore, throw an error
-          await signOut(auth); // Log out the user from Firebase Auth to prevent unintended login
-          throw new Error("User already registered. Please log in instead.");
-        } else {
-          await setDoc(userDocRef, {
-            email: user.email,
-            isPremium: false,
-          });
-          const newUserDoc = await getDoc(userDocRef);
-          if (newUserDoc.exists()){
-               setUserData(newUserDoc.data() as UserData);
+          console.log("User document does not exist, creating it.");
+          try {
+            await setDoc(userDocRef, { email: user.email, isPremium: false });
+          } catch (error) {
+            console.error("Failed to create user document:", error);
           }
         }
-      } catch (error) {
-        console.error("Error during Google sign-up", error);
+      }, (error) => {
+        console.error("Firestore onSnapshot listener error:", error);
+      });
+
+      // Sync Stripe status once per login
+      user.getIdToken()
+        .then(token => fetch('/api/sync-stripe-status', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+        }))
+        .catch(e => console.error('Stripe sync fetch failed:', e));
+
+    } else {
+      // User is null, clear user data
+      setUserData(null);
+    }
+
+    return () => {
+      if (unsubscribeFromUserData) {
+        unsubscribeFromUserData();
+      }
+    };
+  }, [user, router, pathname]);
+
+  const signUp = (email: string, password: string) => {
+    return createUserWithEmailAndPassword(auth, email, password);
+  };
+
+  const logInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithRedirect(auth, provider);
+  };
+
+  const signUpWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithRedirect(auth, provider);
+  };
+
+  const sendPasswordReset = (email: string) => {
+    return sendPasswordResetEmail(auth, email);
+  };
+
+  const deleteAccount = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        await deleteDoc(userDocRef);
+        await deleteUser(currentUser);
+      } catch (error: any) {
+        console.error("Error deleting user account:", error);
+        if (error.code === 'auth/requires-recent-login') {
+          throw new Error("auth/requires-recent-login");
+        }
         throw error;
       }
-    };
-  
-    const sendPasswordReset = (email: string) => {
-      return sendPasswordResetEmail(auth, email);
-    };
-  
-    const deleteAccount = async () => {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        try {
-          // Firestoreのユーザーデータも削除
-          const userDocRef = doc(db, 'users', currentUser.uid);
-          await deleteDoc(userDocRef);
-  
-          await deleteUser(currentUser);
-          console.log("User account and data deleted successfully.");
-          // 削除後、自動的にログアウトされるため、UIは自動的に更新されるはずです。
-        } catch (error: any) {
-          console.error("Error deleting user account:", error);
-          if (error.code === 'auth/requires-recent-login') {
-            // 再認証が必要な場合は、UI側で処理できるようにエラーを再スロー
-            throw new Error("auth/requires-recent-login"); 
-          }
-          throw error; // その他のエラーも再スロー
-        }
-      } else {
-        console.warn("No user is currently signed in to delete.");
-        throw new Error("No user signed in.");
-      }
-    };
-  
-    const value = {
-      user,
-      userData,
-      loading,
-      signUp,
-      logIn: (email: string, password: string) => signInWithEmailAndPassword(auth, email, password),
-      logOut: () => signOut(auth),
-      sendPasswordReset,
-      logInWithGoogle, // Updated
-      signUpWithGoogle, // New
-      deleteAccount,
-    };
-  
-    return (
-              <AuthContext.Provider value={value}>
-                {children}
-              </AuthContext.Provider>  );
-  }
+    } else {
+      throw new Error("No user signed in.");
+    }
+  };
+
+  const value = {
+    user,
+    userData,
+    loading,
+    signUp,
+    logIn: (email: string, password: string) => signInWithEmailAndPassword(auth, email, password),
+    logOut: () => signOut(auth),
+    sendPasswordReset,
+    logInWithGoogle,
+    signUpWithGoogle,
+    deleteAccount,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+}

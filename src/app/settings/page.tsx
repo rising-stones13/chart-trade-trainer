@@ -27,11 +27,29 @@ export default function SettingsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  // DB更新を待機中であることを示すstate
+  const [isCanceling, setIsCanceling] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  // DB更新を監視し、完了したらリフレッシュするuseEffect
+  useEffect(() => {
+    // isCancelingがtrue（更新待機中）で、かつuserData.isPremiumがfalseに変わったら実行
+    if (isCanceling && userData && !userData.isPremium) {
+      toast({
+        title: "プランが正常に解除されました",
+        description: "画面の表示を更新します。",
+      });
+      // 確実なDB更新を検知したので、リフレッシュを実行
+      router.refresh();
+      // 待機状態を解除
+      setIsCanceling(false);
+    }
+  }, [userData, isCanceling, router, toast]);
 
   const handleDeleteAccount = async () => {
     if (userData?.isPremium) {
@@ -87,35 +105,30 @@ export default function SettingsPage() {
 
   const handleCancelSubscription = async () => {
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: "ログインが必要です。",
-      });
+      toast({ variant: "destructive", title: "エラー", description: "ログインが必要です。" });
       return;
     }
+
+    // 待機状態を開始
+    setIsCanceling(true);
+    toast({
+      title: "サブスクリプションの解除処理を開始しました...",
+      description: "データベースの更新を待っています。",
+    });
 
     try {
       const response = await fetch('/api/cancel-subscription', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.uid }),
       });
 
-      if (response.ok) {
-        toast({
-          title: "プレミアムプランを解除しました",
-          description: "次回の課金サイクルで無料プランに移行します。",
-        });
-        // ユーザーデータの再取得やステートの更新
-        // ここでは一旦ページをリロードして最新のデータを取得することを想定
-        router.refresh(); 
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "サブスクリプションの解除に失敗しました。");
+        throw new Error(errorData.message || "サブスクリプションの解除リクエストに失敗しました。");
       }
+      // 成功した場合、ここでは何もしない。useEffectが後続処理を行う。
+
     } catch (error: any) {
       console.error("Error canceling subscription:", error);
       toast({
@@ -123,6 +136,8 @@ export default function SettingsPage() {
         title: "サブスクリプション解除に失敗しました",
         description: error.message || "予期せぬエラーが発生しました。",
       });
+      // エラーが発生したので待機状態を解除
+      setIsCanceling(false);
     }
   };
 
@@ -177,25 +192,27 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm font-medium">次回の課金期間終了日:</p>
+                <p className="text-sm font-medium">現在の契約期間終了日:</p>
                 <p className="text-lg">
                   {userData.currentPeriodEnd ? new Date(userData.currentPeriodEnd * 1000).toLocaleDateString() : '不明'}
                 </p>
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="outline" className="w-full">プレミアムプランを解除する</Button>
+                  <Button variant="outline" className="w-full" disabled={isCanceling}>
+                    {isCanceling ? '解除処理中...' : 'プレミアムプランを解除する'}
+                  </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>本当にプレミアムプランを解除しますか？</AlertDialogTitle>
                     <AlertDialogDescription>
-                      プランを解除すると、次回の課金日から無料プランに移行します。それまではプレミアム機能を利用できます。
+                      この操作を行うと、サブスクリプションは即座にキャンセルされ、プレミアム機能が利用できなくなります。この操作は元に戻せません。
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelSubscription} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction onClick={handleCancelSubscription} disabled={isCanceling} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                       解除する
                     </AlertDialogAction>
                   </AlertDialogFooter>

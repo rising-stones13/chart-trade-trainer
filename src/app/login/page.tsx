@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -19,6 +19,11 @@ export default function LoginPage() {
   const { logIn, sendPasswordReset, logInWithGoogle } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    // このコンソールログがプレビュー環境のドメインを明らかにします
+    console.log("This preview environment is running on origin:", window.location.origin);
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

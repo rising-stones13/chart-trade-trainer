@@ -5,3 +5,32 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Make secrets from Google Secret Manager available as environment variables.
+# The `availability` property specifies whether the secret is available
+# during the build process (`BUILD`) or at runtime (`RUNTIME`).
+# `NEXT_PUBLIC_` variables are needed at build time for Next.js.
+secrets:
+  # Firebase client-side config
+  - secret: NEXT_PUBLIC_FIREBASE_API_KEY
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_APP_ID
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    availability: [BUILD, RUNTIME]
+
+  # Stripe configuration
+  - secret: STRIPE_SECRET_KEY
+    availability: [BUILD, RUNTIME]
+  - secret: STRIPE_WEBHOOK_SECRET
+    availability: [BUILD, RUNTIME]
+  - secret: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    availability: [BUILD, RUNTIME]

@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"next dev --turbopack -p 9002\" \"~/projects/webapps/bin/stripe listen --forward-to localhost:9002/api/stripe-webhook\"",
+    "dev": "npx concurrently \"next dev --turbopack -p 9002\" \"stripe listen --forward-to localhost:9002/api/stripe-webhook\"",
+    "stripe:listen": "stripe listen --forward-to localhost:9002/api/stripe-webhook",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "NODE_ENV=production next build",
@@ -14,6 +15,7 @@
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
+    "@google-cloud/secret-manager": "^6.1.1",
     "@hookform/resolvers": "^4.1.3",
     "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
