@@ -1,22 +1,34 @@
 'use client';
 
-import ChartTradeTrainer from '@/components/chart-trade-trainer';
+import { useReducer } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import DashboardLayout from '@/components/dashboard-layout';
+import ChartTradeTrainer, { reducer, initialState } from '@/components/chart-trade-trainer';
 
 export default function Home() {
-  const { user, userData, logOut, loading } = useAuth();
+  const { user, loading } = useAuth();
+  // The state for the chart trainer is now managed here
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Props for the ControlPanel, to be passed to DashboardLayout
+  const controlPanelProps = {
+    fileLoaded: state.fileLoaded,
+    upColor: state.upColor,
+    downColor: state.downColor,
+    onCandleColorChange: (target: 'upColor' | 'downColor', color: string) => {
+      dispatch({ type: 'SET_CANDLE_COLOR', payload: { target, color } });
+    },
+    maConfigs: state.maConfigs,
+    onMaToggle: (period: string) => dispatch({ type: 'TOGGLE_MA', payload: period }),
+    rsiConfig: state.rsiConfig,
+    onRsiToggle: () => dispatch({ type: 'TOGGLE_RSI' }),
+    macdConfig: state.macdConfig,
+    onMacdToggle: () => dispatch({ type: 'TOGGLE_MACD' }),
+    volumeConfig: state.volumeConfig,
+    onVolumeToggle: () => dispatch({ type: 'TOGGLE_VOLUME' }),
+  };
 
   if (loading) {
     return (
@@ -27,61 +39,12 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main className="min-h-screen">
       {user ? (
-        <div className="flex flex-col h-screen">
-          <header className="flex justify-between items-center p-4 border-b flex-shrink-0 h-16">
-            <div>
-              {userData?.isPremium ? (
-                <Badge variant="premium">プレミアムプラン</Badge>
-              ) : (
-                <Badge variant="secondary">フリープラン</Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-4 flex-nowrap min-w-0">
-              {!userData?.isPremium && (
-                <Button asChild size="sm">
-                  <Link href="/pricing">プレミアムにアップグレード</Link>
-                </Button>
-              )}
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage src={user.photoURL || ""} alt={user.displayName || ""} />
-                      <AvatarFallback>
-                        {user.email ? user.email.charAt(0).toUpperCase() : '?'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">ログイン中</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings">設定</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={logOut}>
-                    ログアウト
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-            </div>
-          </header>
-          <div className="flex-1 min-h-0">
-            <ChartTradeTrainer />
-          </div>
-        </div>
+        // Pass the props to DashboardLayout and the state/dispatch to the trainer
+        <DashboardLayout controlPanelProps={controlPanelProps}>
+          <ChartTradeTrainer state={state} dispatch={dispatch} />
+        </DashboardLayout>
       ) : (
         <div className="flex flex-col items-center justify-center min-h-screen">
           <h1 className="text-4xl font-bold mb-4">ChartTrade Trainerへようこそ</h1>

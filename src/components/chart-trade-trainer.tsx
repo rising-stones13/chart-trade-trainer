@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useEffect, useReducer, useCallback, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useReducer, useMemo, useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { generateWeeklyData, parseStockData, calculateRSI, calculateMACD } from '@/lib/data-helpers';
-import type { AppState, CandleData, MAConfig, Position, Trade, PositionEntry, RSIConfig, MACDConfig, VolumeConfig } from '@/types';
+import type { AppState, CandleData, MAConfig, Position, PositionEntry, RSIConfig, MACDConfig, VolumeConfig, Trade } from '@/types';
 import { StockChart } from './stock-chart';
-import { ControlPanel } from './control-panel';
-import { TradePanel } from './trade-panel';
-import { LineChart, Loader2, Menu, ArrowLeft, AreaChart, FolderOpen } from 'lucide-react';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { TradePanel } from './trade-panel'; // Re-import TradePanel
+import { LineChart, Loader2, FolderOpen, AreaChart } from 'lucide-react';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 
+// Action and reducer logic remains unchanged.
+// We are only changing the layout and component composition.
 type Action =
   | { type: 'SET_CHART_DATA'; payload: { data: CandleData[]; title: string } }
   | { type: 'START_REPLAY'; payload: Date }
@@ -45,7 +45,7 @@ type AppStateWithLocal = AppState & {
   realizedPL: number,
 };
 
-const initialState: AppStateWithLocal = {
+export const initialState: AppStateWithLocal = {
   chartData: [],
   weeklyData: [],
   chartTitle: 'ChartTrade Trainer',
@@ -65,7 +65,8 @@ const initialState: AppStateWithLocal = {
   downColor: '#26a69a',
 };
 
-function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
+export function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
+    // Reducer logic is correct and does not need changes
   switch (action.type) {
     case 'SET_CHART_DATA': {
       const { data, title } = action.payload;
@@ -271,19 +272,23 @@ function reducer(state: AppStateWithLocal, action: Action): AppStateWithLocal {
   }
 }
 
-export default function ChartTradeTrainer() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+// We need to pass state and dispatch up to the parent (page.tsx) to provide them to DashboardLayout
+interface ChartTradeTrainerProps {
+  state: AppStateWithLocal;
+  dispatch: React.Dispatch<Action>;
+}
+
+export default function ChartTradeTrainer({ state, dispatch }: ChartTradeTrainerProps) {
   const { userData } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isControlPanelOpen, setIsControlPanelOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (userData && !userData.isPremium) {
       dispatch({ type: 'RESET_PREMIUM_FEATURES' });
     }
-  }, [userData]);
+  }, [userData, dispatch]);
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -293,11 +298,8 @@ export default function ChartTradeTrainer() {
     try {
       const fileContent = await file.text();
       const { data, meta } = parseStockData(fileContent);
-
       const title = meta.longName ? `${meta.longName} (${meta.symbol})` : file.name;
-
       dispatch({ type: 'SET_CHART_DATA', payload: { data, title } });
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'ファイルの処理中にエラーが発生しました。';
       toast({ variant: 'destructive', title: 'エラー', description: errorMessage });
@@ -315,10 +317,6 @@ export default function ChartTradeTrainer() {
     }
   };
 
-  const handleSetCandleColor = (target: 'upColor' | 'downColor', color: string) => {
-    dispatch({ type: 'SET_CANDLE_COLOR', payload: { target, color } });
-  };
-  
   const handlePartialClose = (type: 'long' | 'short') => {
     dispatch({ type: 'CLOSE_PARTIAL_POSITION', payload: { type, amount: 100 } });
   };
@@ -348,119 +346,68 @@ export default function ChartTradeTrainer() {
   ), [state.positions]);
 
   return (
-    <div className="flex flex-col h-full font-body bg-background text-foreground overflow-hidden">
-      <header className="p-2 border-b border-border flex items-center gap-2 flex-shrink-0">
-          <Sheet open={isControlPanelOpen} onOpenChange={setIsControlPanelOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" size="icon"><Menu /></Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[320px] flex flex-col">
-                <SheetHeader className="p-2 border-b flex flex-row items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => setIsControlPanelOpen(false)}><ArrowLeft /></Button>
-                    <div className="border-l border-border h-6 mx-2"></div>
-                    <SheetTitle>コントロールパネル</SheetTitle>
-                </SheetHeader>
-                <div className="p-4 flex-grow overflow-y-auto">
-                  <ControlPanel
-                    fileLoaded={state.fileLoaded}
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] h-full overflow-hidden">
+      {/* Main content area: Chart and its own simplified header */}
+      <div className="flex flex-col h-full min-h-0 border-r">
+        <header className="p-2 border-b flex items-center gap-2 flex-shrink-0">
+            <TooltipProvider>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+                            disabled={!state.fileLoaded}
+                        >
+                            <AreaChart />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>週足</p></TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+            <div className="border-l h-6 mx-2"></div>
+            <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
+            <div className="flex items-center gap-2 ml-auto">
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".json" style={{ display: 'none' }} disabled={isLoading} />
+                <Button onClick={() => fileInputRef.current?.click()} disabled={isLoading} size="sm">
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderOpen className="mr-2 h-4 w-4" />}
+                    {isLoading ? '読込中...' : 'ファイルを開く'}
+                </Button>
+            </div>
+        </header>
+        <main className="relative flex-1 min-w-0 min-h-0 bg-background">
+            <div className="absolute inset-0">
+                {isLoading ? (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground"><Loader2 className="w-16 h-16 mb-4 animate-spin" /><p>データを読み込んでいます...</p></div>
+                ) : state.fileLoaded ? (
+                  <StockChart
+                    key={`${state.chartTitle}-${state.upColor}-${state.downColor}`}
+                    chartData={displayedChartData}
+                    weeklyData={state.weeklyData}
+                    positions={allEntries}
+                    tradeHistory={state.tradeHistory}
+                    maConfigs={state.maConfigs}
+                    rsiData={rsiData}
+                    macdData={macdData}
+                    showWeeklyChart={state.showWeeklyChart}
+                    onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
+                    replayIndex={state.replayIndex}
                     upColor={state.upColor}
                     downColor={state.downColor}
-                    onCandleColorChange={handleSetCandleColor}
-                    maConfigs={state.maConfigs}
-                    onMaToggle={(period) => dispatch({ type: 'TOGGLE_MA', payload: period })}
-                    rsiConfig={state.rsiConfig}
-                    onRsiToggle={() => dispatch({ type: 'TOGGLE_RSI' })}
-                    macdConfig={state.macdConfig}
-                    onMacdToggle={() => dispatch({ type: 'TOGGLE_MACD' })}
                     volumeConfig={state.volumeConfig}
-                    onVolumeToggle={() => dispatch({ type: 'TOGGLE_VOLUME' })}
+                    isPremium={!!userData?.isPremium}
+                    chartTitle={state.chartTitle}
                   />
-                </div>
-            </SheetContent>
-          </Sheet>
-          
-          <div className="border-l border-border h-6 mx-2"></div>
-          
-          <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-                        disabled={!state.fileLoaded}
-                    >
-                        <AreaChart />
-                    </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    <p>週足</p>
-                </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          <div className="border-l border-border h-6 mx-2"></div>
-
-          <h1 className="text-lg font-bold truncate">{state.chartTitle}</h1>
-          
-          <div className="flex items-center gap-2 ml-auto">
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept=".json"
-              style={{ display: 'none' }}
-              disabled={isLoading}
-            />
-            <Button onClick={() => fileInputRef.current?.click()} disabled={isLoading} size="sm">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderOpen className="mr-2 h-4 w-4" />}
-              {isLoading ? '読込中...' : 'ファイルを開く'}
-            </Button>
-          </div>
-      </header>
-
-      {/* Main content area using CSS Grid */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_300px] grid-rows-[1fr_400px] lg:grid-rows-1 min-h-0">
-        {/* Chart Area */}
-        <main className="relative min-w-0 min-h-0">
-          <div className="absolute inset-0">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <Loader2 className="w-16 h-16 mb-4 animate-spin" />
-                <p>データを読み込んでいます...</p>
-              </div>
-            ) : state.fileLoaded ? (
-              <StockChart
-                key={`${state.chartTitle}-${state.upColor}-${state.downColor}`}
-                chartData={displayedChartData}
-                weeklyData={state.weeklyData}
-                positions={allEntries}
-                tradeHistory={state.tradeHistory}
-                maConfigs={state.maConfigs}
-                rsiData={rsiData}
-                macdData={macdData}
-                showWeeklyChart={state.showWeeklyChart}
-                onCloseWeeklyChart={() => dispatch({ type: 'TOGGLE_WEEKLY_CHART' })}
-                replayIndex={state.replayIndex}
-                upColor={state.upColor}
-                downColor={state.downColor}
-                volumeConfig={state.volumeConfig}
-                isPremium={!!userData?.isPremium}
-                chartTitle={state.chartTitle}
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                <LineChart className="w-24 h-24 mb-4" />
-                <h2 className="text-2xl font-semibold">ChartTrade Trainer</h2>
-                <p>右上の「ファイルを開く」から株価データ(JSON)を読み込みます。</p>
-              </div>
-            )}
-          </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground"><LineChart className="w-24 h-24 mb-4" /><h2 className="text-2xl font-semibold">ChartTrade Trainer</h2><p>「ファイルを開く」から株価データ(JSON)を読み込みます。</p></div>
+                )}
+            </div>
         </main>
+      </div>
 
-        {/* Trade Panel Area */}
-        <aside className="relative lg:border-l border-t lg:border-t-0">
-          <div className="absolute inset-0 h-full w-full">
+      {/* Right side: Trade Panel */}
+      <aside className="relative h-full overflow-y-auto">
+         <div className="absolute inset-0">
             <TradePanel
               fileLoaded={state.fileLoaded}
               isReplay={state.isReplay}
@@ -473,9 +420,8 @@ export default function ChartTradeTrainer() {
               onNextDay={() => dispatch({ type: 'NEXT_DAY' })}
               onDateChange={handleDateChange}
             />
-          </div>
-        </aside>
-      </div>
+        </div>
+      </aside>
     </div>
   );
 }
