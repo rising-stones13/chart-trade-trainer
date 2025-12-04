@@ -11,7 +11,7 @@ import {
   sendPasswordResetEmail,
   UserCredential,
   GoogleAuthProvider,
-  signInWithRedirect,
+  signInWithPopup, // signInWithRedirectからsignInWithPopupに変更
   deleteUser
 } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
@@ -119,13 +119,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider); // signInWithRedirectからsignInWithPopupに変更
   };
 
   const signUpWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    await signInWithRedirect(auth, provider);
+    await signInWithPopup(auth, provider); // signInWithRedirectからsignInWithPopupに変更
   };
 
   const sendPasswordReset = (email: string) => {
